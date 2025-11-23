@@ -71,8 +71,8 @@ jobs:
           password: ${{ secrets.SMTP_PASSWORD }}
 
           subject: "Hilton resort-credit hotel list updated"
-          to: "liqiu2003@icloud.com"
-          from: "Hilton Bot <hilton@zhengqiu.net>"
+          to: "liqiu2003@outlook.com"
+          from: "Hilton Bot <me@zhengqiu.net>"
           body: |
             The Hilton resort-credit hotel list and/or geocoded data has changed.
             Attached is the latest hotels_geocoded_google.csv file.
