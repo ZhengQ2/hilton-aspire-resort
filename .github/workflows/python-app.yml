@@ -72,7 +72,7 @@ jobs:
 
           subject: "Hilton resort-credit hotel list updated"
           to: "liqiu2003@icloud.com"
-          from: "Hilton Bot <${{ secrets.SMTP_USERNAME }}>"
+          from: "Hilton Bot <hilton@zhengqiu.net>"
           body: |
             The Hilton resort-credit hotel list and/or geocoded data has changed.
             Attached is the latest hotels_geocoded_google.csv file.
