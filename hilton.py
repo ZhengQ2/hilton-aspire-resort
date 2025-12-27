@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import unicodedata
 from urllib.parse import urljoin, urlparse, urlunparse, parse_qsl, urlencode
+from typing import Dict, List, Tuple, Any, Optional
 import json
 import os
 
@@ -349,19 +350,23 @@ def _is_cached_hotel_in_scraped(cached_name: str, brand: str, scraped_index) -> 
     return False
 
 
-def _update_cache_with_new_hotels(cache_path: str, new_hotels_df, cache_index):
+def _update_cache_with_new_hotels(
+    cache_path: str, 
+    new_hotels: List[Dict[str, Any]], 
+    cache_index: Dict[str, set]
+) -> int:
     """
     Update the geocode cache by adding entries for new hotels.
     
     Args:
         cache_path: Path to the cache file
-        new_hotels_df: DataFrame with new hotels to add
+        new_hotels: List of dictionaries with new hotels to add
         cache_index: Existing cache index for checking duplicates
         
     Returns:
         Number of hotels added to cache
     """
-    if new_hotels_df.empty:
+    if not new_hotels:
         return 0
     
     try:
@@ -373,9 +378,9 @@ def _update_cache_with_new_hotels(cache_path: str, new_hotels_df, cache_index):
             cache = {}
         
         added_count = 0
-        for _, row in new_hotels_df.iterrows():
-            hotel_name = _clean_text(row["hotel_name"])
-            brand = _clean_text(row["group_label"])
+        for hotel_data in new_hotels:
+            hotel_name = _clean_text(hotel_data["hotel_name"])
+            brand = _clean_text(hotel_data["group_label"])
             
             # Skip if already in cache (double check)
             if _is_hotel_in_cache(hotel_name, brand, cache_index):
@@ -413,7 +418,11 @@ def _update_cache_with_new_hotels(cache_path: str, new_hotels_df, cache_index):
         return 0
 
 
-def _remove_hotels_from_cache(cache_path: str, removed_hotels, scraped_index):
+def _remove_hotels_from_cache(
+    cache_path: str, 
+    removed_hotels: List[Tuple[str, str]], 
+    scraped_index: Dict[str, List[str]]
+) -> int:
     """
     Remove hotels from the geocode cache that are no longer in the scraped list.
     
@@ -563,8 +572,7 @@ def main(headless=True):
             # 3) Update cache with new hotels
             if new_hotels:
                 print(f"\nUpdating cache with {len(new_hotels)} new hotels...")
-                new_hotels_df = pd.DataFrame(new_hotels)
-                added = _update_cache_with_new_hotels(CACHE_FILE, new_hotels_df, cache_index)
+                added = _update_cache_with_new_hotels(CACHE_FILE, new_hotels, cache_index)
                 if added > 0:
                     print(f"✓ Added {added} new hotel(s) to cache")
                 else:
