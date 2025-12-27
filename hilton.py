@@ -559,7 +559,7 @@ def main(headless=True):
             if not new_hotels:
                 print("All scraped hotels appear to be present in geocode cache.")
             else:
-                print(f"\nHotels NOT found in geocode cache ({len(new_hotels)} new hotels):")
+                print("Hotels NOT found in geocode cache (new hotels):")
                 for r in new_hotels:
                     print(
                         f"- {r['hotel_name']}  [brand: {r['group_label']}]  -> {r['hotel_url']}"
@@ -572,9 +572,9 @@ def main(headless=True):
                     removed_hotels.append((cached_name, brand))
 
             if not removed_hotels:
-                print("\nNo cached hotels appear to have been removed from the current list.")
+                print("No cached hotels appear to have been removed from the current list.")
             else:
-                print(f"\nHotels in geocode cache but NOT in current scraped list ({len(removed_hotels)} removed):")
+                print("Hotels in geocode cache but NOT in current scraped list (removed):")
                 for name, brand in sorted(removed_hotels, key=lambda x: (x[1], x[0])):
                     print(f"- {name}  [brand: {brand}]")
             
