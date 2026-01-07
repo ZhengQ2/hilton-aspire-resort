@@ -939,50 +939,6 @@
       "website": "https://www.hilton.com/en/hotels/flldhqq-the-diplomat-beach-resort-hollywood/?SEO_id=GMB-AMER-QQ-FLLDHQQ&y_source=1_MTg4MTIwMS03MTUtbG9jYXRpb24ud2Vic2l0ZQ%3D%3D"
     }
   },
-  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"herbsqq domes aulus elounda all inclusive resort Curio Collection by Hilton Hotel\", \"herbsqq domes aulus elounda all inclusive resort Curio Collection by Hilton Resort\", \"herbsqq domes aulus elounda all inclusive resort Curio Collection by Hilton\", \"herbsqq domes aulus elounda all inclusive resort Hilton Hotel\", \"herbsqq domes aulus elounda all inclusive resort Hilton Resort\", \"herbsqq domes aulus elounda all inclusive resort Hilton\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Curio Collection by Hilton Hotel\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Curio Collection by Hilton Resort\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Curio Collection by Hilton\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Hilton Hotel\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Hilton Resort\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Hilton\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Hotel\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton Resort\", \"Domes Aulus Elounda All-Inclusive Resort, Curio by Hilton\"], \"v\": 3}": {
-    "lat": 35.277694,
-    "lon": 25.7232969,
-    "formatted_address": "Aghia Paraskevi, Schisma Elountas 720 53, Greece",
-    "provider": "google_places",
-    "confidence": "PLACE_DETAILS",
-    "place_id": "ChIJH2FY6TGDkBQRK8M-D8ZrGrM",
-    "types": [
-      "establishment",
-      "lodging",
-      "point_of_interest",
-      "spa"
-    ],
-    "partial_match": false,
-    "raw": {
-      "business_status": "OPERATIONAL",
-      "formatted_address": "Aghia Paraskevi, Schisma Elountas 720 53, Greece",
-      "geometry": {
-        "location": {
-          "lat": 35.277694,
-          "lng": 25.7232969
-        },
-        "viewport": {
-          "northeast": {
-            "lat": 35.2790019302915,
-            "lng": 25.7249015302915
-          },
-          "southwest": {
-            "lat": 35.2763039697085,
-            "lng": 25.7222035697085
-          }
-        }
-      },
-      "name": "Domes Aulus Elounda All-Inclusive Resort, Curio Collection by Hilton",
-      "place_id": "ChIJH2FY6TGDkBQRK8M-D8ZrGrM",
-      "types": [
-        "establishment",
-        "lodging",
-        "point_of_interest",
-        "spa"
-      ],
-      "website": "https://www.hilton.com/en/hotels/herbsqq-domes-aulus-elounda-all-inclusive-resort/?SEO_id=GMB-EMEA-QQ-HERBSQQ"
-    }
-  },
   "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"mthfbqq faro blanco resort yacht club marathon Curio Collection by Hilton Hotel\", \"mthfbqq faro blanco resort yacht club marathon Curio Collection by Hilton Resort\", \"mthfbqq faro blanco resort yacht club marathon Curio Collection by Hilton\", \"mthfbqq faro blanco resort yacht club marathon Hilton Hotel\", \"mthfbqq faro blanco resort yacht club marathon Hilton Resort\", \"mthfbqq faro blanco resort yacht club marathon Hilton\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Curio Collection by Hilton Hotel\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Curio Collection by Hilton Resort\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Curio Collection by Hilton\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Hilton Hotel\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Hilton Resort\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Hilton\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Hotel\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton Resort\", \"Faro Blanco Resort & Yacht Club Marathon, Curio by Hilton\"], \"v\": 3}": {
     "lat": 24.7092861,
     "lon": -81.1045614,
@@ -1623,50 +1579,6 @@
         "point_of_interest"
       ],
       "website": "https://www.hilton.com/en/hotels/psplqqq-la-quinta-resort-and-club/?SEO_id=GMB-AMER-QQ-PSPLQQQ&y_source=1_MjA4NDMwMi03MTUtbG9jYXRpb24ud2Vic2l0ZQ%3D%3D"
-    }
-  },
-  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"rholiqq lindian village beach resort rhodes Curio Collection by Hilton Hotel\", \"rholiqq lindian village beach resort rhodes Curio Collection by Hilton Resort\", \"rholiqq lindian village beach resort rhodes Curio Collection by Hilton\", \"rholiqq lindian village beach resort rhodes Hilton Hotel\", \"rholiqq lindian village beach resort rhodes Hilton Resort\", \"rholiqq lindian village beach resort rhodes Hilton\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Curio Collection by Hilton Hotel\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Curio Collection by Hilton Resort\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Curio Collection by Hilton\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Hilton Hotel\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Hilton Resort\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Hilton\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Hotel\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton Resort\", \"Lindian Village Beach Resort Rhodes, Curio Collection by Hilton\"], \"v\": 3}": {
-    "lat": 36.0666332,
-    "lon": 27.9915476,
-    "formatted_address": "Beach, Λάρδος 851 09, Greece",
-    "provider": "google_places",
-    "confidence": "PLACE_DETAILS",
-    "place_id": "ChIJO801WgMJlRQRagIXAPOqxxs",
-    "types": [
-      "establishment",
-      "lodging",
-      "point_of_interest",
-      "spa"
-    ],
-    "partial_match": false,
-    "raw": {
-      "business_status": "OPERATIONAL",
-      "formatted_address": "Beach, Λάρδος 851 09, Greece",
-      "geometry": {
-        "location": {
-          "lat": 36.0666332,
-          "lng": 27.9915476
-        },
-        "viewport": {
-          "northeast": {
-            "lat": 36.0679676302915,
-            "lng": 27.9928628302915
-          },
-          "southwest": {
-            "lat": 36.0652696697085,
-            "lng": 27.9901648697085
-          }
-        }
-      },
-      "name": "Lindian Village All-Inclusive Resort Rhodes, Curio Collection by Hilton",
-      "place_id": "ChIJO801WgMJlRQRagIXAPOqxxs",
-      "types": [
-        "establishment",
-        "lodging",
-        "point_of_interest",
-        "spa"
-      ],
-      "website": "https://www.hilton.com/en/hotels/rholiqq-lindian-village-all-inclusive-resort-rhodes/?SEO_id=GMB-EMEA-QQ-RHOLIQQ"
     }
   },
   "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"olbccqq mangias santa teresa sardinia Curio Collection by Hilton Hotel\", \"olbccqq mangias santa teresa sardinia Curio Collection by Hilton Resort\", \"olbccqq mangias santa teresa sardinia Curio Collection by Hilton\", \"olbccqq mangias santa teresa sardinia Hilton Hotel\", \"olbccqq mangias santa teresa sardinia Hilton Resort\", \"olbccqq mangias santa teresa sardinia Hilton\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Curio Collection by Hilton Hotel\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Curio Collection by Hilton Resort\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Curio Collection by Hilton\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Hilton Hotel\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Hilton Resort\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Hilton\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Hotel\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton Resort\", \"Mangias Santa Teresa Sardinia, Curio Collection by Hilton\"], \"v\": 3}": {
@@ -13107,6 +13019,96 @@
         "spa"
       ],
       "website": "https://www.hilton.com/en/hotels/auhetci-conrad-abu-dhabi-etihad-towers/?SEO_id=GMB-EMEA-CI-AUHETCI"
+    }
+  },
+  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"Aulus Lindos Rhodes Resort, Curio Collection by Hilton\"], \"v\": 3}": null,
+  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"Domes Aulus Elounda Resort, Curio by Hilton\"], \"v\": 3}": null,
+  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"rholiqq lindian village beach resort rhodes Curio Collection by Hilton Hotel\", \"rholiqq lindian village beach resort rhodes Curio Collection by Hilton Resort\", \"rholiqq lindian village beach resort rhodes Curio Collection by Hilton\", \"rholiqq lindian village beach resort rhodes Hilton Hotel\", \"rholiqq lindian village beach resort rhodes Hilton Resort\", \"rholiqq lindian village beach resort rhodes Hilton\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Curio Collection by Hilton Hotel\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Curio Collection by Hilton Resort\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Curio Collection by Hilton\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Hilton Hotel\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Hilton Resort\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Hilton\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Hotel\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton Resort\", \"Aulus Lindos Rhodes Resort, Curio Collection by Hilton\"], \"v\": 3}": {
+    "lat": 36.0666332,
+    "lon": 27.9915476,
+    "formatted_address": "Beach, Λάρδος 851 09, Greece",
+    "provider": "google_places",
+    "confidence": "PLACE_DETAILS",
+    "place_id": "ChIJO801WgMJlRQRagIXAPOqxxs",
+    "types": [
+      "establishment",
+      "lodging",
+      "point_of_interest",
+      "spa"
+    ],
+    "partial_match": false,
+    "raw": {
+      "business_status": "OPERATIONAL",
+      "formatted_address": "Beach, Λάρδος 851 09, Greece",
+      "geometry": {
+        "location": {
+          "lat": 36.0666332,
+          "lng": 27.9915476
+        },
+        "viewport": {
+          "northeast": {
+            "lat": 36.0679754802915,
+            "lng": 27.9928654302915
+          },
+          "southwest": {
+            "lat": 36.0652775197085,
+            "lng": 27.9901674697085
+          }
+        }
+      },
+      "name": "Aulūs Lindos Rhodes Resort, Curio Collection by Hilton",
+      "place_id": "ChIJO801WgMJlRQRagIXAPOqxxs",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest",
+        "spa"
+      ],
+      "website": "https://www.hilton.com/en/hotels/rholiqq-lindian-village-all-inclusive-resort-rhodes/?SEO_id=GMB-EMEA-QQ-RHOLIQQ"
+    }
+  },
+  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"herbsqq domes aulus elounda resort Curio Collection by Hilton Hotel\", \"herbsqq domes aulus elounda resort Curio Collection by Hilton Resort\", \"herbsqq domes aulus elounda resort Curio Collection by Hilton\", \"herbsqq domes aulus elounda resort Hilton Hotel\", \"herbsqq domes aulus elounda resort Hilton Resort\", \"herbsqq domes aulus elounda resort Hilton\", \"Domes Aulus Elounda Resort, Curio by Hilton Curio Collection by Hilton Hotel\", \"Domes Aulus Elounda Resort, Curio by Hilton Curio Collection by Hilton Resort\", \"Domes Aulus Elounda Resort, Curio by Hilton Curio Collection by Hilton\", \"Domes Aulus Elounda Resort, Curio by Hilton Hilton Hotel\", \"Domes Aulus Elounda Resort, Curio by Hilton Hilton Resort\", \"Domes Aulus Elounda Resort, Curio by Hilton Hilton\", \"Domes Aulus Elounda Resort, Curio by Hilton Hotel\", \"Domes Aulus Elounda Resort, Curio by Hilton Resort\", \"Domes Aulus Elounda Resort, Curio by Hilton\"], \"v\": 3}": {
+    "lat": 35.277694,
+    "lon": 25.7232969,
+    "formatted_address": "Aghia Paraskevi, Schisma Elountas 720 53, Greece",
+    "provider": "google_places",
+    "confidence": "PLACE_DETAILS",
+    "place_id": "ChIJH2FY6TGDkBQRK8M-D8ZrGrM",
+    "types": [
+      "establishment",
+      "lodging",
+      "point_of_interest",
+      "spa"
+    ],
+    "partial_match": false,
+    "raw": {
+      "business_status": "OPERATIONAL",
+      "formatted_address": "Aghia Paraskevi, Schisma Elountas 720 53, Greece",
+      "geometry": {
+        "location": {
+          "lat": 35.277694,
+          "lng": 25.7232969
+        },
+        "viewport": {
+          "northeast": {
+            "lat": 35.2790019302915,
+            "lng": 25.7249015302915
+          },
+          "southwest": {
+            "lat": 35.2763039697085,
+            "lng": 25.7222035697085
+          }
+        }
+      },
+      "name": "Domes Aulus Elounda Resort, Curio Collection by Hilton",
+      "place_id": "ChIJH2FY6TGDkBQRK8M-D8ZrGrM",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest",
+        "spa"
+      ],
+      "website": "https://www.hilton.com/en/hotels/herbsqq-domes-aulus-elounda-all-inclusive-resort/?SEO_id=GMB-EMEA-QQ-HERBSQQ"
     }
   }
 }
