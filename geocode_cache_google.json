@@ -12123,48 +12123,6 @@
       "website": "https://www.hilton.com/en/hotels/romhiwa-rome-cavalieri/?SEO_id=GMB-EMEA-WA-ROMHIWA"
     }
   },
-  "{\"brand\": \"Waldorf Astoria Hotels & Resorts\", \"provider\": \"google_places_first\", \"queries\": [\"cunwawa waldorf astoria cancun Waldorf Astoria Hotels & Resorts Hotel\", \"cunwawa waldorf astoria cancun Waldorf Astoria Hotels & Resorts Resort\", \"cunwawa waldorf astoria cancun Waldorf Astoria Hotels & Resorts\", \"cunwawa waldorf astoria cancun Hilton Hotel\", \"cunwawa waldorf astoria cancun Hilton Resort\", \"cunwawa waldorf astoria cancun Hilton\", \"Waldorf Astoria Cancun Waldorf Astoria Hotels & Resorts Hotel\", \"Waldorf Astoria Cancun Waldorf Astoria Hotels & Resorts Resort\", \"Waldorf Astoria Cancun Waldorf Astoria Hotels & Resorts\", \"Waldorf Astoria Cancun Hilton Hotel\", \"Waldorf Astoria Cancun Hilton Resort\", \"Waldorf Astoria Cancun Hilton\", \"Waldorf Astoria Cancun Hotel\", \"Waldorf Astoria Cancun Resort\", \"Waldorf Astoria Cancun\"], \"v\": 3}": {
-    "lat": 20.9520526,
-    "lon": -86.8366669,
-    "formatted_address": "Carr Federal Libre 307 Cancun-Tulum 248-868, SM-36, MZ-1 LT-1-01 UPE-1E, 77580 Cancun, Q.R., Mexico",
-    "provider": "google_places",
-    "confidence": "PLACE_DETAILS",
-    "place_id": "ChIJkyOt07uGTo8RMr3LpxWrWeg",
-    "types": [
-      "establishment",
-      "lodging",
-      "point_of_interest"
-    ],
-    "partial_match": false,
-    "raw": {
-      "business_status": "OPERATIONAL",
-      "formatted_address": "Carr Federal Libre 307 Cancun-Tulum 248-868, SM-36, MZ-1 LT-1-01 UPE-1E, 77580 Cancun, Q.R., Mexico",
-      "geometry": {
-        "location": {
-          "lat": 20.9520526,
-          "lng": -86.8366669
-        },
-        "viewport": {
-          "northeast": {
-            "lat": 20.9535149302915,
-            "lng": -86.83547556970849
-          },
-          "southwest": {
-            "lat": 20.95081696970849,
-            "lng": -86.8381735302915
-          }
-        }
-      },
-      "name": "Waldorf Astoria Riviera Maya",
-      "place_id": "ChIJkyOt07uGTo8RMr3LpxWrWeg",
-      "types": [
-        "establishment",
-        "lodging",
-        "point_of_interest"
-      ],
-      "website": "https://www.hilton.com/en/hotels/cunwawa-waldorf-astoria-riviera-maya/?SEO_id=GMB-AMER-WA-CUNWAWA&y_source=1_Mjc3MjkwNjgtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D"
-    }
-  },
   "{\"brand\": \"Waldorf Astoria Hotels & Resorts\", \"provider\": \"google_places_first\", \"queries\": [\"dxbpdwa waldorf astoria dubai palm jumeirah Waldorf Astoria Hotels & Resorts Hotel\", \"dxbpdwa waldorf astoria dubai palm jumeirah Waldorf Astoria Hotels & Resorts Resort\", \"dxbpdwa waldorf astoria dubai palm jumeirah Waldorf Astoria Hotels & Resorts\", \"dxbpdwa waldorf astoria dubai palm jumeirah Hilton Hotel\", \"dxbpdwa waldorf astoria dubai palm jumeirah Hilton Resort\", \"dxbpdwa waldorf astoria dubai palm jumeirah Hilton\", \"Waldorf Astoria Dubai Palm Jumeirah Waldorf Astoria Hotels & Resorts Hotel\", \"Waldorf Astoria Dubai Palm Jumeirah Waldorf Astoria Hotels & Resorts Resort\", \"Waldorf Astoria Dubai Palm Jumeirah Waldorf Astoria Hotels & Resorts\", \"Waldorf Astoria Dubai Palm Jumeirah Hilton Hotel\", \"Waldorf Astoria Dubai Palm Jumeirah Hilton Resort\", \"Waldorf Astoria Dubai Palm Jumeirah Hilton\", \"Waldorf Astoria Dubai Palm Jumeirah Hotel\", \"Waldorf Astoria Dubai Palm Jumeirah Resort\", \"Waldorf Astoria Dubai Palm Jumeirah\"], \"v\": 3}": {
     "lat": 25.1345671,
     "lon": 55.1511192,
@@ -12981,6 +12939,49 @@
         "spa"
       ],
       "website": "https://www.hilton.com/en/hotels/herbsqq-domes-aulus-elounda-all-inclusive-resort/?SEO_id=GMB-EMEA-QQ-HERBSQQ"
+    }
+  },
+  "{\"brand\": \"Waldorf Astoria Hotels & Resorts\", \"provider\": \"google_places_first\", \"queries\": [\"Waldorf Astoria Riveria Maya\"], \"v\": 3}": null,
+  "{\"brand\": \"Waldorf Astoria Hotels & Resorts\", \"provider\": \"google_places_first\", \"queries\": [\"cunwawa waldorf astoria riviera maya Waldorf Astoria Hotels & Resorts Hotel\", \"cunwawa waldorf astoria riviera maya Waldorf Astoria Hotels & Resorts Resort\", \"cunwawa waldorf astoria riviera maya Waldorf Astoria Hotels & Resorts\", \"cunwawa waldorf astoria riviera maya Hilton Hotel\", \"cunwawa waldorf astoria riviera maya Hilton Resort\", \"cunwawa waldorf astoria riviera maya Hilton\", \"Waldorf Astoria Riveria Maya Waldorf Astoria Hotels & Resorts Hotel\", \"Waldorf Astoria Riveria Maya Waldorf Astoria Hotels & Resorts Resort\", \"Waldorf Astoria Riveria Maya Waldorf Astoria Hotels & Resorts\", \"Waldorf Astoria Riveria Maya Hilton Hotel\", \"Waldorf Astoria Riveria Maya Hilton Resort\", \"Waldorf Astoria Riveria Maya Hilton\", \"Waldorf Astoria Riveria Maya Hotel\", \"Waldorf Astoria Riveria Maya Resort\", \"Waldorf Astoria Riveria Maya\"], \"v\": 3}": {
+    "lat": 20.9520526,
+    "lon": -86.8366669,
+    "formatted_address": "Carr Federal Libre 307 Cancun-Tulum 248-868, SM-36, MZ-1 LT-1-01 UPE-1E, 77580 Cancun, Q.R., Mexico",
+    "provider": "google_places",
+    "confidence": "PLACE_DETAILS",
+    "place_id": "ChIJkyOt07uGTo8RMr3LpxWrWeg",
+    "types": [
+      "establishment",
+      "lodging",
+      "point_of_interest"
+    ],
+    "partial_match": false,
+    "raw": {
+      "business_status": "OPERATIONAL",
+      "formatted_address": "Carr Federal Libre 307 Cancun-Tulum 248-868, SM-36, MZ-1 LT-1-01 UPE-1E, 77580 Cancun, Q.R., Mexico",
+      "geometry": {
+        "location": {
+          "lat": 20.9520526,
+          "lng": -86.8366669
+        },
+        "viewport": {
+          "northeast": {
+            "lat": 20.9535149302915,
+            "lng": -86.83547556970849
+          },
+          "southwest": {
+            "lat": 20.95081696970849,
+            "lng": -86.8381735302915
+          }
+        }
+      },
+      "name": "Waldorf Astoria Riviera Maya",
+      "place_id": "ChIJkyOt07uGTo8RMr3LpxWrWeg",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "website": "https://www.hilton.com/en/hotels/cunwawa-waldorf-astoria-riviera-maya/?SEO_id=GMB-AMER-WA-CUNWAWA&y_source=1_Mjc3MjkwNjgtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D"
     }
   }
 }
