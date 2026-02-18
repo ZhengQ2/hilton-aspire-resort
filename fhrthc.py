@@ -45,7 +45,23 @@ class AmexCardHTMLParser(HTMLParser):
 
     @staticmethod
     def _class_has(attrs, needle):
-        return needle in (attrs.get("class", "") or "")
+        classes = (attrs.get("class", "") or "").split()
+        for cls in classes:
+            if cls == needle or cls.startswith(f"{needle}-") or cls.startswith(f"{needle}__"):
+                return True
+        return False
+
+    def _pop_until_matching_tag(self, tag):
+        """Pop stack entries until we find a matching opening tag.
+
+        HTML from upstream can be imperfect. Using strict LIFO matching can
+        desynchronize parsing state and drop rows.
+        """
+        while self._stack:
+            started_tag, started_attrs = self._stack.pop()
+            if started_tag == tag:
+                return started_tag, started_attrs
+        return None, None
 
     def handle_starttag(self, tag, attrs_list):
         attrs = dict(attrs_list)
@@ -63,19 +79,27 @@ class AmexCardHTMLParser(HTMLParser):
             self._capture_location = True
             self._location_buf = []
 
+        if tag == "div" and self._class_has(attrs, "wst-footer"):
+            # Footer begins after the property title area; stop any in-flight
+            # supplier-name capture to avoid swallowing CTA text like
+            # "View Hotel".
+            self._capture_supplier = False
+            self._supplier_buf = []
+            self._current_href = ""
+
         if tag == "a":
-            cls = attrs.get("class", "")
             href = attrs.get("href", "")
-            if "card-supplierName" in cls or "/travel/discover/property/" in href:
+            # Only capture the explicit supplier-name anchor. Broad href-based
+            # matching also captures CTA links (e.g., "View Hotel").
+            if self._class_has(attrs, "card-supplierName"):
                 self._capture_supplier = True
                 self._supplier_buf = []
                 self._current_href = href
 
     def handle_endtag(self, tag):
-        if not self._stack:
+        started_tag, started_attrs = self._pop_until_matching_tag(tag)
+        if not started_tag:
             return
-
-        started_tag, started_attrs = self._stack.pop()
         if tag == "div" and started_tag == "div":
             if self._class_has(started_attrs, "card-program"):
                 self._capture_program = False
