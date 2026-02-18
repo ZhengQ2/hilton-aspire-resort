@@ -45,7 +45,20 @@ class AmexCardHTMLParser(HTMLParser):
 
     @staticmethod
     def _class_has(attrs, needle):
-        return needle in (attrs.get("class", "") or "")
+        classes = (attrs.get("class", "") or "").split()
+        return needle in classes
+
+    def _pop_until_matching_tag(self, tag):
+        """Pop stack entries until we find a matching opening tag.
+
+        HTML from upstream can be imperfect. Using strict LIFO matching can
+        desynchronize parsing state and drop rows.
+        """
+        while self._stack:
+            started_tag, started_attrs = self._stack.pop()
+            if started_tag == tag:
+                return started_tag, started_attrs
+        return None, None
 
     def handle_starttag(self, tag, attrs_list):
         attrs = dict(attrs_list)
@@ -72,10 +85,9 @@ class AmexCardHTMLParser(HTMLParser):
                 self._current_href = href
 
     def handle_endtag(self, tag):
-        if not self._stack:
+        started_tag, started_attrs = self._pop_until_matching_tag(tag)
+        if not started_tag:
             return
-
-        started_tag, started_attrs = self._stack.pop()
         if tag == "div" and started_tag == "div":
             if self._class_has(started_attrs, "card-program"):
                 self._capture_program = False
