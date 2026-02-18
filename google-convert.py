@@ -38,9 +38,10 @@ load_dotenv()
 # -----------------------
 # Config (no CLI args)
 # -----------------------
-INPUT_PATH  = "hilton_resort_credit_hotels_by_brand.csv"  # must include hotel_name, group_label; optional hotel_url
-OUTPUT_PATH = "hotels_geocoded_google.csv"
-CACHE_PATH  = "geocode_cache_google.json"
+CACHE_DIR = os.environ.get("HILTON_CACHE_DIR", "cache")
+INPUT_PATH  = os.path.join(CACHE_DIR, "hilton_resort_credit_hotels_by_brand.csv")  # must include hotel_name, group_label; optional hotel_url
+OUTPUT_PATH = os.path.join(CACHE_DIR, "hotels_geocoded_google.csv")
+CACHE_PATH  = os.path.join(CACHE_DIR, "geocode_cache_google.json")
 
 REGION_BIAS = ""       # e.g., "US", "CA", "GB" or "" for none (used by Geocoding fallback)
 BASE_DELAY  = 0.0       # seconds between requests (jittered)

@@ -26,20 +26,22 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install playwright pandas requests tenacity python-dotenv gspread google-auth
-          python -m playwright install --with-deps chromium
+          pip install pandas requests tenacity python-dotenv gspread google-auth
 
       - name: Run Hilton scraper
+        env:
+          HILTON_CACHE_DIR: cache
         run: |
+          mkdir -p cache
           # Capture stdout and stderr separately
-          python hilton.py > >(tee hilton.log) 2> >(tee hilton.stderr.log >&2)
+          python hilton.py > >(tee cache/hilton.log) 2> >(tee cache/hilton.stderr.log >&2)
 
       - name: Did Hilton list change vs geocode cache?
         id: check_list
         run: |
           # Look for headers that hilton.py prints only when there ARE changes
-          if grep -q "Hotels NOT found in geocode cache (new hotels):" hilton.log || \
-             grep -q "Hotels in geocode cache but NOT in current scraped list (removed):" hilton.log; then
+          if grep -q "Hotels NOT found in geocode cache (new hotels):" cache/hilton.log || \
+             grep -q "Hotels in geocode cache but NOT in current scraped list (removed):" cache/hilton.log; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -49,42 +51,47 @@ jobs:
         id: normalization_email_body
         run: |
           # If hilton.py printed warnings to stderr, keep original combined body context.
-          if [ -s hilton.stderr.log ]; then
-            echo "body_file=hilton.log" >> "$GITHUB_OUTPUT"
+          if [ -s cache/hilton.stderr.log ]; then
+            echo "body_file=cache/hilton.log" >> "$GITHUB_OUTPUT"
           else
-            echo "body_file=hilton_normalized_urls.log" >> "$GITHUB_OUTPUT"
+            echo "body_file=cache/hilton_normalized_urls.log" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run Google geocoding (google-convert.py)
         if: steps.check_list.outputs.changed == 'true'
         env:
+          HILTON_CACHE_DIR: cache
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: |
           # Append google-convert.py output to the same log
-          python google-convert.py | tee -a hilton.log
+          python google-convert.py | tee -a cache/hilton.log
 
       - name: Write Google service account credentials
         if: steps.check_list.outputs.changed == 'true'
         run: |
-          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > service_account.json
+          mkdir -p cache
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > cache/service_account.json
 
       - name: Update Google Sheet with hotels_geocoded_google.csv
         if: steps.check_list.outputs.changed == 'true'
+        env:
+          HILTON_CACHE_DIR: cache
         run: |
           python - << 'PY'
+          import os
           import pandas as pd
           import gspread
           from google.oauth2.service_account import Credentials
 
           SHEET_ID = "1YyLN_w8Es1gtMjL-l0SzTmXYbFjDHAAacbvBqvyfhio"
-          CSV_PATH = "hotels_geocoded_google.csv"
+          CSV_PATH = os.path.join(os.environ.get("HILTON_CACHE_DIR", "cache"), "hotels_geocoded_google.csv")
 
           # Load CSV
           df = pd.read_csv(CSV_PATH)
 
           # Auth with service account
           scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-          creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
+          creds = Credentials.from_service_account_file(os.path.join(os.environ.get("HILTON_CACHE_DIR", "cache"), "service_account.json"), scopes=scopes)
           client = gspread.authorize(creds)
 
           # Open sheet and overwrite first worksheet
@@ -113,10 +120,10 @@ jobs:
           from: "Hilton Bot <hilton@zhengqiu.net>"
 
           # Use combined stdout of hilton.py + google-convert.py as body
-          body: file://hilton.log
+          body: file://cache/hilton.log
 
           attachments: |
-            hotels_geocoded_google.csv
+            cache/hotels_geocoded_google.csv
 
       - name: Send separate URL normalization email from Hilton Bot
         if: steps.check_list.outputs.changed == 'true'
@@ -140,7 +147,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Commit cache + geocoded CSV so future runs see an up-to-date cache
-          git add geocode_cache_google.json hotels_geocoded_google.csv || true
+          git add cache/geocode_cache_google.json cache/hotels_geocoded_google.csv cache/hilton_normalized_urls.log || true
 
           if [ -n "$(git status --porcelain)" ]; then
             git commit -m "Update geocode cache and geocoded hotels [CI]"

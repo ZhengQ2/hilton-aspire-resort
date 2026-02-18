@@ -1,24 +1,32 @@
-# scrape_hilton_hotels_by_brand_playwright.py
-from playwright.sync_api import sync_playwright, TimeoutError
-import pandas as pd
-import re
-import unicodedata
-import sys
-from urllib.parse import urljoin, urlparse, urlunparse, parse_qsl, urlencode
-from typing import Dict, List, Tuple, Any, Optional
 import json
 import os
+import re
+import sys
+import unicodedata
+from html.parser import HTMLParser
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from urllib.request import HTTPCookieProcessor, Request, build_opener
+
+import pandas as pd
 
 URL = "https://www.hilton.com/en/p/hilton-honors/resort-credit-eligible-hotels/"
-OUT = "hilton_resort_credit_hotels_by_brand.csv"
-CACHE_FILE = "geocode_cache_google.json"
-NORMALIZED_URL_LOG = "hilton_normalized_urls.log"
+CACHE_DIR = os.environ.get("HILTON_CACHE_DIR", "cache")
+OUT = os.path.join(CACHE_DIR, "hilton_resort_credit_hotels_by_brand.csv")
+CACHE_FILE = os.path.join(CACHE_DIR, "geocode_cache_google.json")
+NORMALIZED_URL_LOG = os.path.join(CACHE_DIR, "hilton_normalized_urls.log")
+LEGACY_CACHE_FILE = "geocode_cache_google.json"
 
 SPECIAL_URL_MAP = {
     "https://romecavalieri.com/": "https://www.hilton.com/en/hotels/romhiwa-rome-cavalieri/",
     "https://www.grandwailea.com/": "https://www.hilton.com/en/hotels/jhmgwwa-grand-wailea/",
     "https://www.waldorfastoriamonarchbeach.com/": "https://www.hilton.com/en/hotels/snamowa-waldorf-astoria-monarch-beach/resort/",
 }
+
+
+def _ensure_cache_dir() -> None:
+    os.makedirs(CACHE_DIR, exist_ok=True)
 
 
 def _clean_text(s: str) -> str:
@@ -37,13 +45,8 @@ def _clean_url(u: str) -> str:
     u = u.strip()
     if u.startswith(("javascript:", "#")):
         return ""
-    # Normalize & drop obvious tracking params (keep it light)
     try:
         p = urlparse(u)
-        if not p.scheme:
-            # leave as-is; caller may join against page URL later
-            pass
-        # remove some common trackers
         qs = [
             (k, v)
             for k, v in parse_qsl(p.query)
@@ -66,12 +69,6 @@ def _clean_url(u: str) -> str:
 
 
 def _normalize_hilton_url(u: str) -> Tuple[str, bool]:
-    """
-    Normalize hotel URL to Hilton English property URL format.
-
-    Returns:
-        (url_to_use, has_stderr_warning)
-    """
     cleaned = _clean_url(u)
     if not cleaned:
         return "", False
@@ -83,8 +80,6 @@ def _normalize_hilton_url(u: str) -> Tuple[str, bool]:
 
     parsed = urlparse(cleaned)
     path_parts = [p for p in parsed.path.split("/") if p]
-
-    # Expect: /{lang}/hotels/...
     if parsed.netloc.lower() == "www.hilton.com" and len(path_parts) >= 2 and path_parts[1].lower() == "hotels":
         lang = path_parts[0].lower()
         if lang != "en":
@@ -100,294 +95,210 @@ def _normalize_hilton_url(u: str) -> Tuple[str, bool]:
     return u, True
 
 
-def _extract_hotel_location(page) -> str:
-    """Extract hotel address text from the Google Maps search anchor."""
-    selectors = [
-        "a[target='_blank'][href*='google.com/maps/search/?api=1'] span.underline-offset-2",
-        "a[target='_blank'][href*='google.com/maps/search/?api=1'] span.underline",
-        "a[href*='google.com/maps/search/?api=1'] span[class*='whitespace-pre-line']",
-    ]
+class HiltonBrandParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.rows: List[Dict[str, str]] = []
+        self._stack: List[Tuple[str, Dict[str, str]]] = []
 
-    for sel in selectors:
-        try:
-            loc = page.locator(sel).first
-            if loc.count() == 0:
-                continue
-            text = _clean_text(loc.inner_text())
-            if text:
-                return text
-        except Exception:
-            continue
-    return ""
+        self._capture_tab = False
+        self._tab_buf: List[str] = []
+        self._tab_target = ""
+        self._panel_labels: Dict[str, str] = {}
+        self._brand_stack: List[str] = []
+
+        self._capture_anchor = False
+        self._anchor_buf: List[str] = []
+        self._anchor_href = ""
+
+    @staticmethod
+    def _attrs(attrs_list):
+        return {k: v for k, v in attrs_list}
+
+    def handle_starttag(self, tag, attrs_list):
+        attrs = self._attrs(attrs_list)
+        self._stack.append((tag, attrs))
+
+        if tag == "button" and attrs.get("role") == "tab" and attrs.get("aria-controls"):
+            self._capture_tab = True
+            self._tab_target = attrs.get("aria-controls", "")
+            self._tab_buf = []
+
+        tag_id = attrs.get("id", "")
+        if tag_id and tag_id in self._panel_labels:
+            self._brand_stack.append(self._panel_labels[tag_id])
+
+        if tag == "a":
+            href = (attrs.get("href") or "").strip()
+            if href and not href.startswith(("#", "javascript:")):
+                self._capture_anchor = True
+                self._anchor_href = href
+                self._anchor_buf = []
+
+    def handle_endtag(self, tag):
+        if not self._stack:
+            return
+        start_tag, attrs = self._stack.pop()
+        if start_tag != tag:
+            return
+
+        if tag == "button" and self._capture_tab:
+            label = _clean_text("".join(self._tab_buf))
+            if label and self._tab_target:
+                self._panel_labels[self._tab_target] = label
+            self._capture_tab = False
+            self._tab_buf = []
+            self._tab_target = ""
+
+        tag_id = attrs.get("id", "")
+        if tag_id and tag_id in self._panel_labels and self._brand_stack:
+            self._brand_stack.pop()
+
+        if tag == "a" and self._capture_anchor:
+            name = _clean_text("".join(self._anchor_buf))
+            brand = self._brand_stack[-1] if self._brand_stack else ""
+            if name and self._anchor_href:
+                self.rows.append({"hotel_name": name, "hotel_url": self._anchor_href, "group_label": brand})
+            self._capture_anchor = False
+            self._anchor_href = ""
+            self._anchor_buf = []
+
+    def handle_data(self, data):
+        if self._capture_tab:
+            self._tab_buf.append(data)
+        if self._capture_anchor:
+            self._anchor_buf.append(data)
 
 
-def _visible_text(el):
-    return el.evaluate("n => (n.innerText || '').replace(/\\s+/g,' ').trim()")
+def _dumb_fetch_html(url: str, opener, timeout: int = 60) -> str:
+    req = Request(
+        url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/123.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Upgrade-Insecure-Requests": "1",
+        },
+    )
+    with opener.open(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", errors="ignore")
 
 
-def _click_all_show_more(panel):
-    more_selectors = [
-        "button:has-text('Show more')",
-        "button:has-text('Show More')",
-        "button:has-text('VIEW MORE')",
-        "button:has-text('View more')",
-        "a:has-text('Show more')",
-        "a:has-text('View more')",
-    ]
-    changed = True
-    attempts = 0
-    while changed and attempts < 8:
-        changed = False
-        attempts += 1
-        for sel in more_selectors:
-            for b in panel.locator(sel).all():
-                try:
-                    if b.is_visible():
-                        b.click(timeout=1000)
-                        changed = True
-                except Exception:
-                    pass
-        if changed:
-            panel.page.wait_for_timeout(400)
+def _collect_hotels_dumb_fetch() -> List[Dict[str, Any]]:
+    opener = build_opener(HTTPCookieProcessor())
+    html = _dumb_fetch_html(URL, opener)
+    parser = HiltonBrandParser()
+    parser.feed(html)
 
-
-def _force_lazy_render(panel):
-    try:
-        panel.evaluate(
-            """
-        (root) => {
-            const el = root;
-            if (!el) return;
-            el.scrollTop = 0;
-        }
-        """
-        )
-    except Exception:
-        pass
-    for _ in range(10):
-        try:
-            panel.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
-        except Exception:
-            break
-        panel.page.wait_for_timeout(150)
-
-
-def _collect_hotel_links(panel, base_url):
-    """
-    Return list of dicts: [{name, href}], preferring Hilton property pages.
-    """
-    js = r"""
-    (root) => {
-      const rows = [];
-      const clean = s => (s || "").replace(/\s+/g, " ").trim().replace(/[®™]/g, "");
-      const isJunkText = t => /^(view|book|details?|rates?)\b/i.test(t);
-      const abs = (href) => {
-        try { return new URL(href, location.href).href; } catch { return href || ""; }
-      };
-
-      const push = (name, href) => {
-        name = clean(name);
-        href = (href || "").trim();
-        if (!name || isJunkText(name)) return;
-        if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
-        rows.push({ name, href: abs(href) });
-      };
-
-      // Primary: anchors that look like property links
-      root.querySelectorAll("a").forEach(a => {
-        const t = clean(a.textContent || a.getAttribute("aria-label") || "");
-        const href = a.getAttribute("href") || "";
-        if (!t || t.length > 160) return;
-        if (isJunkText(t)) return;
-        push(t, href);
-      });
-
-      // Fallback: role=link (sometimes divs), try nearest/inner anchor
-      root.querySelectorAll("[role='link']").forEach(el => {
-        const t = clean(el.textContent || el.getAttribute("aria-label") || "");
-        if (!t || t.length > 160 || isJunkText(t)) return;
-        const a = el.closest("a") || el.querySelector("a");
-        const href = a ? (a.getAttribute("href") || "") : "";
-        if (href) push(t, href);
-      });
-
-      // Final fallback: cards with one obvious link
-      root.querySelectorAll("[data-testid*='card'], [class*='card']").forEach(card => {
-        const a = card.querySelector("a");
-        if (!a) return;
-        const t = clean(a.textContent || a.getAttribute("aria-label") || "");
-        const href = a.getAttribute("href") || "";
-        if (!t || t.length > 160 || isJunkText(t)) return;
-        if (href) push(t, href);
-      });
-
-      return rows;
-    }
-    """
-    try:
-        items = panel.evaluate(js) or []
-    except Exception:
-        items = []
-
-    # Clean and normalize
-    cleaned = []
-    for it in items:
-        name = _clean_text(it.get("name") or "")
-        href = _clean_url(it.get("href") or "")
+    rows = []
+    for item in parser.rows:
+        name = _clean_text(item.get("hotel_name", ""))
+        href = _clean_url(item.get("hotel_url", ""))
+        brand = _clean_text(item.get("group_label", "")) or "Unknown"
         if not name or not href:
             continue
         if not urlparse(href).scheme:
-            href = urljoin(base_url, href)
+            href = urljoin(URL, href)
 
         normalized_href, has_warning = _normalize_hilton_url(href)
         if not normalized_href:
             continue
 
-        cleaned.append(
-            {
-                "name": name,
-                "href": normalized_href,
-                "original_href": href,
-                "url_warning": has_warning,
-            }
-        )
+        if "/hotels/" not in normalized_href.lower() and "hilton.com" not in normalized_href.lower():
+            continue
 
-    # Dedup per name, preferring Hilton property pages when multiple URLs exist
-    def score(u: str) -> int:
-        u = u.lower()
-        # Prefer direct property pages on hilton.com/en/hotels/
-        if "hilton.com" in u and "/en/hotels/" in u:
-            return 3
-        if "hilton.com" in u:
-            return 2
-        return 1
-
-    by_name = {}
-    for row in cleaned:
-        key = row["name"].lower()
-        best = by_name.get(key)
-        if not best or score(row["href"]) > score(best["href"]):
-            by_name[key] = row
-
-    return list(by_name.values())
-
-
-def _grab_from_panel(panel, brand_label, base_url):
-    _click_all_show_more(panel)
-    _force_lazy_render(panel)
-    items = _collect_hotel_links(panel, base_url)
-    rows = []
-    for it in items:
         rows.append(
             {
-                "hotel_name": it["name"],
-                "hotel_url": it["href"],
-                "original_hotel_url": it["original_href"],
-                "url_warning": it["url_warning"],
+                "hotel_name": name,
                 "hotel_location": "",
-                "group_label": brand_label,
+                "hotel_url": normalized_href,
+                "original_hotel_url": href,
+                "url_warning": has_warning,
+                "group_label": brand,
                 "group_type": "Brand",
             }
         )
-    return rows
+
+    dedup = {}
+    for r in rows:
+        key = (r["hotel_name"].lower(), r["group_label"].lower())
+        dedup.setdefault(key, r)
+    return list(dedup.values())
 
 
-def _fetch_hotel_locations(context, rows: List[Dict[str, Any]]) -> int:
-    """Visit each hotel URL and extract hotel_location text from Google Maps anchor."""
+class HotelAddressParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self._capture = False
+        self._buf: List[str] = []
+        self.location = ""
+
+    @staticmethod
+    def _attrs(attrs_list):
+        return {k: v for k, v in attrs_list}
+
+    def handle_starttag(self, tag, attrs_list):
+        if self.location:
+            return
+        attrs = self._attrs(attrs_list)
+        if tag == "a":
+            href = attrs.get("href", "")
+            if "google.com/maps/search/?api=1" in href:
+                self._capture = True
+                self._buf = []
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._capture:
+            text = _clean_text("".join(self._buf))
+            if text:
+                self.location = text
+            self._capture = False
+            self._buf = []
+
+    def handle_data(self, data):
+        if self._capture:
+            self._buf.append(data)
+
+
+def _fetch_hotel_locations(rows: List[Dict[str, Any]]) -> int:
+    opener = build_opener(HTTPCookieProcessor())
     fetched = 0
     for row in rows:
-        hotel_url = row.get("hotel_url", "")
-        if not hotel_url:
+        url = row.get("hotel_url", "")
+        if not url:
             continue
-        page = context.new_page()
-        page.set_default_navigation_timeout(60000)
         try:
-            page.goto(hotel_url, wait_until="domcontentloaded")
-            location = _extract_hotel_location(page)
-            row["hotel_location"] = location
+            html = _dumb_fetch_html(url, opener, timeout=45)
+            parser = HotelAddressParser()
+            parser.feed(html)
+            row["hotel_location"] = parser.location
             fetched += 1
         except Exception:
             row["hotel_location"] = row.get("hotel_location", "")
-        finally:
-            page.close()
     return fetched
 
 
-def scrape_desktop(page):
-    rows = []
-    container = page.locator("#HotelsByBrand")
-    tablist = container.locator("[role='tablist'] button[role='tab']")
-    if tablist.count() == 0:
-        return rows
-    for i in range(tablist.count()):
-        btn = tablist.nth(i)
-        label = _clean_text(btn.inner_text())
-        panel_id = btn.get_attribute("aria-controls")
-        btn.click()
-        try:
-            page.wait_for_load_state("networkidle", timeout=5000)
-        except TimeoutError:
-            pass
-        panel = (
-            container.locator(f"#{panel_id}")
-            if panel_id
-            else container.locator("[role='tabpanel']").nth(i)
-        )
-        try:
-            panel.wait_for(state="visible", timeout=7000)
-        except TimeoutError:
-            pass
-        rows.extend(_grab_from_panel(panel, label, page.url))
-    return rows
+def _names_match(name1: str, name2: str) -> bool:
+    return name1 in name2 or name2 in name1
 
-
-def scrape_mobile(page):
-    rows = []
-    container = page.locator("#HotelsByBrand")
-    triggers = container.locator("[aria-controls^='radix-']")
-    if triggers.count() == 0:
-        return rows
-    for i in range(triggers.count()):
-        trig = triggers.nth(i)
-        label = _clean_text(trig.inner_text())
-        panel_id = trig.get_attribute("aria-controls")
-        if not panel_id:
-            continue
-        panel = container.locator(f"#{panel_id}")
-        if (trig.get_attribute("aria-expanded") or "").lower() != "true":
-            trig.click()
-        try:
-            panel.wait_for(state="visible", timeout=7000)
-        except TimeoutError:
-            pass
-        page.wait_for_timeout(300)
-        rows.extend(_grab_from_panel(panel, label, page.url))
-    return rows
-
-
-# ---------- NEW: cache helpers ----------
 
 def _load_geocode_cache_index(cache_path: str = CACHE_FILE):
-    """
-    Load geocode_cache_google.json and build:
-      - index: { brand_lower: set([query_lower, ...]) }
-      - cached_hotels: set([(hotel_name_lower, brand_lower), ...])
-
-    For hotel_name, we heuristically take the *last* query as the canonical
-    name (matches your example where the final query is plain hotel name).
-    """
-    if not os.path.exists(cache_path):
+    source_path = cache_path
+    if not os.path.exists(source_path) and os.path.exists(LEGACY_CACHE_FILE):
+        source_path = LEGACY_CACHE_FILE
+    if not os.path.exists(source_path):
         return {}, set()
 
-    with open(cache_path, "r", encoding="utf-8") as f:
+    with open(source_path, "r", encoding="utf-8") as f:
         cache = json.load(f)
 
     index = {}
     cached_hotels = set()
-
     for key in cache.keys():
-        # keys are JSON-encoded objects like:
-        # {"brand": "...", "provider": "...", "queries": [...], "v": 3}
         try:
             meta = json.loads(key)
         except Exception:
@@ -396,18 +307,13 @@ def _load_geocode_cache_index(cache_path: str = CACHE_FILE):
         brand = _clean_text(meta.get("brand", "")).lower()
         if not brand:
             continue
-
         queries_raw = meta.get("queries", []) or []
         queries_clean = [_clean_text(q) for q in queries_raw if q]
         queries_lower = [q.lower() for q in queries_clean if q]
-
         if not queries_lower:
             continue
 
-        # Build query index for "in cache" tests
         index.setdefault(brand, set()).update(queries_lower)
-
-        # Heuristic canonical hotel name: last query (usually the simplest)
         canonical_name = queries_lower[-1]
         if canonical_name:
             cached_hotels.add((canonical_name, brand))
@@ -416,312 +322,175 @@ def _load_geocode_cache_index(cache_path: str = CACHE_FILE):
 
 
 def _is_hotel_in_cache(hotel_name: str, brand: str, cache_index) -> bool:
-    """
-    Treat a hotel as cached if, for the same brand, any cached query
-    contains the hotel name or is contained in it (case-insensitive).
-    """
-    if not cache_index:
-        return False
-
     brand_key = _clean_text(brand).lower()
     queries = cache_index.get(brand_key)
     if not queries:
         return False
-
     name = _clean_text(hotel_name).lower()
-    for q in queries:
-        if _names_match(name, q):
-            return True
-    return False
+    return any(_names_match(name, q) for q in queries)
 
 
 def _is_cached_hotel_in_scraped(cached_name: str, brand: str, scraped_index) -> bool:
-    """
-    Inverse of _is_hotel_in_cache:
-    Check if a cached (hotel, brand) appears in the scraped list for that brand.
-    """
     brand_key = _clean_text(brand).lower()
     name = _clean_text(cached_name).lower()
-
     scraped_names = scraped_index.get(brand_key, [])
-    for s in scraped_names:
-        if _names_match(name, s):
-            return True
-    return False
+    return any(_names_match(name, s) for s in scraped_names)
 
 
-def _names_match(name1: str, name2: str) -> bool:
-    """
-    Check if two hotel names match using fuzzy logic.
-    Returns True if one name contains the other or they're equal.
-    
-    Args:
-        name1: First name (lowercase)
-        name2: Second name (lowercase)
-        
-    Returns:
-        True if names match, False otherwise
-    """
-    return name1 in name2 or name2 in name1
+def _read_cache_dict(cache_path: str) -> Dict[str, Any]:
+    if os.path.exists(cache_path):
+        with open(cache_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    if os.path.exists(LEGACY_CACHE_FILE):
+        with open(LEGACY_CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 
-def _update_cache_with_new_hotels(
-    cache_path: str, 
-    new_hotels: List[Dict[str, Any]], 
-    cache_index: Dict[str, set]
-) -> int:
-    """
-    Update the geocode cache by adding entries for new hotels.
-    
-    Args:
-        cache_path: Path to the cache file
-        new_hotels: List of dictionaries with new hotels to add
-        cache_index: Existing cache index for checking duplicates
-        
-    Returns:
-        Number of hotels added to cache
-    """
+def _update_cache_with_new_hotels(cache_path: str, new_hotels: List[Dict[str, Any]]) -> int:
     if not new_hotels:
         return 0
-    
     try:
-        # Load existing cache
-        if os.path.exists(cache_path):
-            with open(cache_path, "r", encoding="utf-8") as f:
-                cache = json.load(f)
-        else:
-            cache = {}
-        
+        cache = _read_cache_dict(cache_path)
         added_count = 0
         for hotel_data in new_hotels:
             hotel_name = _clean_text(hotel_data["hotel_name"])
             brand = _clean_text(hotel_data["group_label"])
-            
-            # Build query list similar to google-convert.py format
-            queries = [hotel_name]
-            
-            # Create cache key matching the existing format
-            cache_key = json.dumps({
-                "brand": brand,
-                "provider": "google_places_first",
-                "queries": queries,
-                "v": 3
-            }, sort_keys=True)
-            
-            # Add placeholder entry (will be geocoded later)
-            # Using None to indicate it needs geocoding
-            cache[cache_key] = None
-            added_count += 1
-        
-        # Save updated cache
+            cache_key = json.dumps(
+                {
+                    "brand": brand,
+                    "provider": "google_places_first",
+                    "queries": [hotel_name],
+                    "v": 3,
+                },
+                sort_keys=True,
+            )
+            if cache_key not in cache:
+                cache[cache_key] = None
+                added_count += 1
+
         if added_count > 0:
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(cache, f, ensure_ascii=False, indent=2)
-        
         return added_count
-        
-    except PermissionError:
-        print(f"ERROR: Permission denied when trying to write to {cache_path}")
-        return 0
     except Exception as e:
         print(f"ERROR: Failed to update cache: {e}")
         return 0
 
 
-def _remove_hotels_from_cache(
-    cache_path: str, 
-    removed_hotels: List[Tuple[str, str]], 
-    scraped_index: Dict[str, List[str]]
-) -> int:
-    """
-    Remove hotels from the geocode cache that are no longer in the scraped list.
-    
-    Args:
-        cache_path: Path to the cache file
-        removed_hotels: List of (hotel_name, brand) tuples to remove
-        scraped_index: Index of scraped hotels by brand
-        
-    Returns:
-        Number of hotels removed from cache
-    """
+def _remove_hotels_from_cache(cache_path: str, removed_hotels: List[Tuple[str, str]], scraped_index: Dict[str, List[str]]) -> int:
     if not removed_hotels:
         return 0
-    
     try:
-        # Load existing cache
-        if not os.path.exists(cache_path):
-            return 0
-            
-        with open(cache_path, "r", encoding="utf-8") as f:
-            cache = json.load(f)
-        
+        cache = _read_cache_dict(cache_path)
         keys_to_remove = []
-        
-        # Find cache keys that correspond to removed hotels
-        for key in cache.keys():
+        for key in list(cache.keys()):
             try:
                 meta = json.loads(key)
-                brand = _clean_text(meta.get("brand", "")).lower()
-                queries = meta.get("queries", [])
-                
-                if not queries:
-                    continue
-                
-                # Use last query as canonical name (same as _load_geocode_cache_index)
-                canonical_name = _clean_text(queries[-1]).lower()
-                
-                # Check if this hotel should be removed
-                for removed_name, removed_brand in removed_hotels:
-                    removed_name_clean = _clean_text(removed_name).lower()
-                    removed_brand_clean = _clean_text(removed_brand).lower()
-                    
-                    # Match by brand and name
-                    if brand == removed_brand_clean:
-                        # Check if names match (using same fuzzy logic)
-                        if _names_match(canonical_name, removed_name_clean):
-                            # Double check it's not in scraped list
-                            if not _is_cached_hotel_in_scraped(canonical_name, brand, scraped_index):
-                                keys_to_remove.append(key)
-                                break
             except Exception:
                 continue
-        
-        # Remove keys
+            brand = _clean_text(meta.get("brand", "")).lower()
+            queries = meta.get("queries", [])
+            if not queries:
+                continue
+            canonical_name = _clean_text(queries[-1]).lower()
+            for removed_name, removed_brand in removed_hotels:
+                if brand != _clean_text(removed_brand).lower():
+                    continue
+                if _names_match(canonical_name, _clean_text(removed_name).lower()) and not _is_cached_hotel_in_scraped(canonical_name, brand, scraped_index):
+                    keys_to_remove.append(key)
+                    break
+
         removed_count = 0
         for key in keys_to_remove:
             if key in cache:
                 del cache[key]
                 removed_count += 1
-        
-        # Save updated cache
+
         if removed_count > 0:
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(cache, f, ensure_ascii=False, indent=2)
-        
         return removed_count
-        
-    except PermissionError:
-        print(f"ERROR: Permission denied when trying to write to {cache_path}")
-        return 0
     except Exception as e:
         print(f"ERROR: Failed to remove hotels from cache: {e}")
         return 0
 
 
-# ----------------------------------------
+def main() -> None:
+    _ensure_cache_dir()
 
+    try:
+        rows = _collect_hotels_dumb_fetch()
+    except (HTTPError, URLError) as e:
+        raise RuntimeError(f"Failed to fetch Hilton hotels list: {e}")
 
-def main(headless=True):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
-        context = browser.new_context()
-        page = context.new_page()
-        page.set_default_navigation_timeout(60000)
-        page.goto(URL, wait_until="domcontentloaded")
-
-        rows = scrape_desktop(page)
-        if not rows:
-            rows = scrape_mobile(page)
-
-        print("Normalized hotel URLs:")
+    with open(NORMALIZED_URL_LOG, "w", encoding="utf-8") as f:
         for r in rows:
-            print(f"- {r['hotel_name']} -> {r['hotel_url']}")
+            f.write(f"{r['hotel_name']} -> {r['hotel_url']}\n")
 
-        with open(NORMALIZED_URL_LOG, "w", encoding="utf-8") as f:
-            f.write("Normalized hotel URLs:\n")
-            for r in rows:
-                f.write(f"- {r['hotel_name']} -> {r['hotel_url']}\n")
+    location_count = _fetch_hotel_locations(rows)
+    print(f"Fetched hotel locations for {location_count} URLs")
 
-        # Dedup by (hotel, brand) while preferring the "best" URL picked above
-        dedup = {}
-        for r in rows:
-            key = (r["hotel_name"].lower(), r["group_label"].lower())
-            # first one already chosen by _collect_hotel_links' preference; keep it
-            dedup.setdefault(key, r)
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "hotel_name",
+            "hotel_location",
+            "hotel_url",
+            "original_hotel_url",
+            "url_warning",
+            "group_label",
+            "group_type",
+        ],
+    ).sort_values(by=["group_label", "hotel_name"])
+    df.to_csv(OUT, index=False)
+    print(f"Wrote {len(df)} rows -> {OUT}")
 
-        dedup_rows = list(dedup.values())
+    cache_index, cached_hotels = _load_geocode_cache_index()
+    if not cache_index:
+        print(f"No cache index built (file missing or empty: {CACHE_FILE}).")
+    else:
+        scraped_index: Dict[str, List[str]] = {}
+        for _, row in df.iterrows():
+            bkey = _clean_text(row["group_label"]).lower()
+            nkey = _clean_text(row["hotel_name"]).lower()
+            scraped_index.setdefault(bkey, []).append(nkey)
 
-        location_count = _fetch_hotel_locations(context, dedup_rows)
-        print(f"Fetched hotel locations for {location_count} URLs")
-
-        df = pd.DataFrame(
-            dedup_rows,
-            columns=[
-                "hotel_name",
-                "hotel_location",
-                "hotel_url",
-                "original_hotel_url",
-                "url_warning",
-                "group_label",
-                "group_type",
-            ],
-        ).sort_values(by=["group_label", "hotel_name"])
-
-        df.to_csv(OUT, index=False)
-        print(f"Wrote {len(df)} rows -> {OUT}")
-
-        # -------- NEW: compare against geocode cache --------
-        cache_index, cached_hotels = _load_geocode_cache_index()
-        if not cache_index:
-            print(f"No cache index built (file missing or empty: {CACHE_FILE}).")
+        new_hotels_mask = df.apply(
+            lambda row: not _is_hotel_in_cache(row["hotel_name"], row["group_label"], cache_index), axis=1
+        )
+        new_hotels = df[new_hotels_mask].to_dict("records")
+        if not new_hotels:
+            print("All scraped hotels appear to be present in geocode cache.")
         else:
-            # Index scraped hotels by brand for reverse lookup
-            scraped_index = {}
-            for _, row in df.iterrows():
-                bkey = _clean_text(row["group_label"]).lower()
-                nkey = _clean_text(row["hotel_name"]).lower()
-                scraped_index.setdefault(bkey, []).append(nkey)
+            print("Hotels NOT found in geocode cache (new hotels):")
+            for r in new_hotels:
+                print(f"- {r['hotel_name']}  [brand: {r['group_label']}]  -> {r['hotel_url']}")
 
-            # 1) Scraped hotels that are NOT in geocode cache (new)
-            new_hotels_mask = df.apply(
-                lambda row: not _is_hotel_in_cache(row["hotel_name"], row["group_label"], cache_index),
-                axis=1
-            )
-            new_hotels = df[new_hotels_mask].to_dict('records')
+        removed_hotels = []
+        for cached_name, brand in cached_hotels:
+            if not _is_cached_hotel_in_scraped(cached_name, brand, scraped_index):
+                removed_hotels.append((cached_name, brand))
 
-            if not new_hotels:
-                print("All scraped hotels appear to be present in geocode cache.")
-            else:
-                print("Hotels NOT found in geocode cache (new hotels):")
-                for r in new_hotels:
-                    print(
-                        f"- {r['hotel_name']}  [brand: {r['group_label']}]  -> {r['hotel_url']}"
-                    )
+        if not removed_hotels:
+            print("No cached hotels appear to have been removed from the current list.")
+        else:
+            print("Hotels in geocode cache but NOT in current scraped list (removed):")
+            for name, brand in sorted(removed_hotels, key=lambda x: (x[1], x[0])):
+                print(f"- {name}  [brand: {brand}]")
 
-            # 2) Cached hotels that are NOT in scraped list (removed)
-            removed_hotels = []
-            for cached_name, brand in cached_hotels:
-                if not _is_cached_hotel_in_scraped(cached_name, brand, scraped_index):
-                    removed_hotels.append((cached_name, brand))
+        if new_hotels:
+            print(f"\nUpdating cache with {len(new_hotels)} new hotels...")
+            added = _update_cache_with_new_hotels(CACHE_FILE, new_hotels)
+            if added > 0:
+                print(f"✓ Added {added} new hotel(s) to cache")
 
-            if not removed_hotels:
-                print("No cached hotels appear to have been removed from the current list.")
-            else:
-                print("Hotels in geocode cache but NOT in current scraped list (removed):")
-                for name, brand in sorted(removed_hotels, key=lambda x: (x[1], x[0])):
-                    print(f"- {name}  [brand: {brand}]")
-            
-            # 3) Update cache with new hotels
-            if new_hotels:
-                print(f"\nUpdating cache with {len(new_hotels)} new hotels...")
-                added = _update_cache_with_new_hotels(CACHE_FILE, new_hotels, cache_index)
-                if added > 0:
-                    print(f"✓ Added {added} new hotel(s) to cache")
-                elif added == 0:
-                    print("⚠ Failed to add hotels to cache (check file permissions)")
-            
-            # 4) Remove hotels from cache that are no longer scraped
-            if removed_hotels:
-                print(f"\nRemoving {len(removed_hotels)} hotels from cache...")
-                removed = _remove_hotels_from_cache(CACHE_FILE, removed_hotels, scraped_index)
-                if removed > 0:
-                    print(f"✓ Removed {removed} hotel(s) from cache")
-                elif removed == 0:
-                    print("⚠ Failed to remove hotels from cache (check file permissions)")
-
-        browser.close()
+        if removed_hotels:
+            print(f"\nRemoving {len(removed_hotels)} hotels from cache...")
+            removed = _remove_hotels_from_cache(CACHE_FILE, removed_hotels, scraped_index)
+            if removed > 0:
+                print(f"✓ Removed {removed} hotel(s) from cache")
 
 
 if __name__ == "__main__":
-    headed = "--headed" in sys.argv
-    main(headless=not headed)
+    main()
