@@ -9,8 +9,8 @@ import json
 import os
 
 URL = "https://www.hilton.com/en/p/hilton-honors/resort-credit-eligible-hotels/"
-OUT = "hilton_resort_credit_hotels_by_brand.csv"
-CACHE_FILE = "geocode_cache_google.json"
+OUT = "cache/hilton_hotels.csv"
+CACHE_FILE = "cache/geocode_cache_google.json"
 
 
 def _clean_text(s: str) -> str:

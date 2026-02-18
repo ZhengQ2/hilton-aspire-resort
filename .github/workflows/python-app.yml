@@ -2,7 +2,6 @@ name: Update Hilton Resort List
 
 on:
   schedule:
-    # Run once per day at 05:00 UTC (adjust as you like)
     - cron: "0 5 * * *"
   workflow_dispatch:
 
@@ -10,7 +9,7 @@ jobs:
   scrape-geocode-update-sheet:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # needed to push cache updates back to the repo
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -29,15 +28,16 @@ jobs:
           pip install playwright pandas requests tenacity python-dotenv gspread google-auth
           python -m playwright install --with-deps chromium
 
+      - name: Ensure cache directory exists
+        run: mkdir -p cache
+
       - name: Run Hilton scraper
         run: |
-          # Capture stdout to hilton.log
           python hilton.py | tee hilton.log
 
       - name: Did Hilton list change vs geocode cache?
         id: check_list
         run: |
-          # Look for headers that hilton.py prints only when there ARE changes
           if grep -q "Hotels NOT found in geocode cache (new hotels):" hilton.log || \
              grep -q "Hotels in geocode cache but NOT in current scraped list (removed):" hilton.log; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -45,20 +45,23 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run Google geocoding (google-convert.py)
+      - name: Run Google geocoding (Hilton)
         if: steps.check_list.outputs.changed == 'true'
         env:
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: |
-          # Append google-convert.py output to the same log
-          python google-convert.py | tee -a hilton.log
+          python google-convert.py \
+            --input cache/hilton_hotels.csv \
+            --output cache/hotels_geocoded_google.csv \
+            --cache cache/geocode_cache_google.json \
+            --input-format hilton | tee -a hilton.log
 
       - name: Write Google service account credentials
         if: steps.check_list.outputs.changed == 'true'
         run: |
           echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > service_account.json
 
-      - name: Update Google Sheet with hotels_geocoded_google.csv
+      - name: Update Google Sheet with geocoded Hilton CSV
         if: steps.check_list.outputs.changed == 'true'
         run: |
           python - << 'PY'
@@ -67,29 +70,21 @@ jobs:
           from google.oauth2.service_account import Credentials
 
           SHEET_ID = "1YyLN_w8Es1gtMjL-l0SzTmXYbFjDHAAacbvBqvyfhio"
-          CSV_PATH = "hotels_geocoded_google.csv"
+          CSV_PATH = "cache/hotels_geocoded_google.csv"
 
-          # Load CSV
           df = pd.read_csv(CSV_PATH)
-
-          # Auth with service account
           scopes = ["https://www.googleapis.com/auth/spreadsheets"]
           creds = Credentials.from_service_account_file("service_account.json", scopes=scopes)
           client = gspread.authorize(creds)
 
-          # Open sheet and overwrite first worksheet
           sh = client.open_by_key(SHEET_ID)
-          ws = sh.sheet1  # or sh.worksheet("Sheet1") if you prefer by name
-
-          # Clear existing content
+          ws = sh.sheet1
           ws.clear()
-
-          # Write headers + rows
           rows = [df.columns.tolist()] + df.astype(object).where(df.notnull(), "").values.tolist()
           ws.update(rows)
           PY
 
-      - name: Send email with updated hotels_geocoded_google.csv
+      - name: Send email with updated geocoded Hilton CSV
         if: steps.check_list.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v6
         with:
@@ -97,16 +92,12 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-
           subject: "Hilton resort-credit hotel list updated"
           to: "liqiu2003@icloud.com"
           from: "Hilton Bot <hilton@zhengqiu.net>"
-
-          # Use combined stdout of hilton.py + google-convert.py as body
           body: file://hilton.log
-
           attachments: |
-            hotels_geocoded_google.csv
+            cache/hotels_geocoded_google.csv
 
       - name: Commit and push cache updates
         if: steps.check_list.outputs.changed == 'true'
@@ -114,11 +105,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Commit cache + geocoded CSV so future runs see an up-to-date cache
-          git add geocode_cache_google.json hotels_geocoded_google.csv || true
+          git add cache/geocode_cache_google.json cache/hotels_geocoded_google.csv cache/hilton_hotels.csv || true
 
           if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "Update geocode cache and geocoded hotels [CI]"
+            git commit -m "Update Hilton cache and geocoded hotels [CI]"
             git push
           else
             echo "No cache changes to commit."

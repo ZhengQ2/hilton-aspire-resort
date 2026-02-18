@@ -39,9 +39,9 @@ load_dotenv()
 # -----------------------
 # Config defaults (can be overridden via CLI)
 # -----------------------
-INPUT_PATH  = "hilton_resort_credit_hotels_by_brand.csv"  # must include hotel_name, group_label; optional hotel_url
-OUTPUT_PATH = "hotels_geocoded_google.csv"
-CACHE_PATH  = "geocode_cache_google.json"
+INPUT_PATH  = "cache/hilton_hotels.csv"  # hilton mode: hotel_name, group_label; fhrthc mode: hotel_name, hotel_location
+OUTPUT_PATH = "cache/hotels_geocoded_google.csv"
+CACHE_PATH  = "cache/geocode_cache_google.json"
 INPUT_FORMAT = "auto"  # auto|hilton|fhrthc
 
 REGION_BIAS = ""       # e.g., "US", "CA", "GB" or "" for none (used by Geocoding fallback)
