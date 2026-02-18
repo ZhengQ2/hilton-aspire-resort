@@ -12983,5 +12983,91 @@
       ],
       "website": "https://www.hilton.com/en/hotels/cunwawa-waldorf-astoria-riviera-maya/?SEO_id=GMB-AMER-WA-CUNWAWA&y_source=1_Mjc3MjkwNjgtNzE1LWxvY2F0aW9uLndlYnNpdGU%3D"
     }
+  },
+  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"Casa Mani Resort Napa Valley, Curio Collection by Hilton\"], \"v\": 3}": null,
+  "{\"brand\": \"Waldorf Astoria Hotels & Resorts\", \"provider\": \"google_places_first\", \"queries\": [\"Waldorf Astoria Costa Rica Punta Cacique\"], \"v\": 3}": null,
+  "{\"brand\": \"Curio Collection by Hilton\", \"provider\": \"google_places_first\", \"queries\": [\"napvpqq casa mani resort napa valley Curio Collection by Hilton Hotel\", \"napvpqq casa mani resort napa valley Curio Collection by Hilton Resort\", \"napvpqq casa mani resort napa valley Curio Collection by Hilton\", \"napvpqq casa mani resort napa valley Hilton Hotel\", \"napvpqq casa mani resort napa valley Hilton Resort\", \"napvpqq casa mani resort napa valley Hilton\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Curio Collection by Hilton Hotel\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Curio Collection by Hilton Resort\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Curio Collection by Hilton\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Hilton Hotel\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Hilton Resort\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Hilton\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Hotel\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton Resort\", \"Casa Mani Resort Napa Valley, Curio Collection by Hilton\"], \"v\": 3}": {
+    "lat": 38.3003232,
+    "lon": -122.3013043,
+    "formatted_address": "1075 California Blvd, Napa, CA 94559, USA",
+    "provider": "google_places",
+    "confidence": "PLACE_DETAILS",
+    "place_id": "ChIJlxgg-VgHhYARqI9xhyIEQ6M",
+    "types": [
+      "establishment",
+      "lodging",
+      "point_of_interest"
+    ],
+    "partial_match": false,
+    "raw": {
+      "business_status": "OPERATIONAL",
+      "formatted_address": "1075 California Blvd, Napa, CA 94559, USA",
+      "geometry": {
+        "location": {
+          "lat": 38.3003232,
+          "lng": -122.3013043
+        },
+        "viewport": {
+          "northeast": {
+            "lat": 38.30166813029151,
+            "lng": -122.2998399697085
+          },
+          "southwest": {
+            "lat": 38.29897016970851,
+            "lng": -122.3025379302915
+          }
+        }
+      },
+      "name": "Casa Mani Resort Napa Valley, Curio Collection by Hilton",
+      "place_id": "ChIJlxgg-VgHhYARqI9xhyIEQ6M",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "website": "https://www.hilton.com/en/hotels/napvpqq-casa-mani-resort-napa-valley/?SEO_id=GMB-AMER-QQ-NAPVPQQ&y_source=1_MjA0MzQ1MzU2NC03MTUtbG9jYXRpb24ud2Vic2l0ZQ%3D%3D"
+    }
+  },
+  "{\"brand\": \"Waldorf Astoria Hotels & Resorts\", \"provider\": \"google_places_first\", \"queries\": [\"lirguwa waldorf astoria costa rica punta cacique Waldorf Astoria Hotels & Resorts Hotel\", \"lirguwa waldorf astoria costa rica punta cacique Waldorf Astoria Hotels & Resorts Resort\", \"lirguwa waldorf astoria costa rica punta cacique Waldorf Astoria Hotels & Resorts\", \"lirguwa waldorf astoria costa rica punta cacique Hilton Hotel\", \"lirguwa waldorf astoria costa rica punta cacique Hilton Resort\", \"lirguwa waldorf astoria costa rica punta cacique Hilton\", \"Waldorf Astoria Costa Rica Punta Cacique Waldorf Astoria Hotels & Resorts Hotel\", \"Waldorf Astoria Costa Rica Punta Cacique Waldorf Astoria Hotels & Resorts Resort\", \"Waldorf Astoria Costa Rica Punta Cacique Waldorf Astoria Hotels & Resorts\", \"Waldorf Astoria Costa Rica Punta Cacique Hilton Hotel\", \"Waldorf Astoria Costa Rica Punta Cacique Hilton Resort\", \"Waldorf Astoria Costa Rica Punta Cacique Hilton\", \"Waldorf Astoria Costa Rica Punta Cacique Hotel\", \"Waldorf Astoria Costa Rica Punta Cacique Resort\", \"Waldorf Astoria Costa Rica Punta Cacique\"], \"v\": 3}": {
+    "lat": 10.5719869,
+    "lon": -85.6973587,
+    "formatted_address": "Playa Penca, Ruta Nacional 159 km 3, Provincia de Guanacaste, Carrillo, 10901, Costa Rica",
+    "provider": "google_places",
+    "confidence": "PLACE_DETAILS",
+    "place_id": "ChIJbY8VN-wpno8RNTKUCGHGZnM",
+    "types": [
+      "establishment",
+      "lodging",
+      "point_of_interest"
+    ],
+    "partial_match": false,
+    "raw": {
+      "business_status": "OPERATIONAL",
+      "formatted_address": "Playa Penca, Ruta Nacional 159 km 3, Provincia de Guanacaste, Carrillo, 10901, Costa Rica",
+      "geometry": {
+        "location": {
+          "lat": 10.5719869,
+          "lng": -85.6973587
+        },
+        "viewport": {
+          "northeast": {
+            "lat": 10.5733688802915,
+            "lng": -85.69661161970849
+          },
+          "southwest": {
+            "lat": 10.5706709197085,
+            "lng": -85.6993095802915
+          }
+        }
+      },
+      "name": "Waldorf Astoria Costa Rica Punta Cacique",
+      "place_id": "ChIJbY8VN-wpno8RNTKUCGHGZnM",
+      "types": [
+        "establishment",
+        "lodging",
+        "point_of_interest"
+      ],
+      "website": "https://www.hilton.com/en/hotels/lirguwa-waldorf-astoria-costa-rica-punta-cacique/?SEO_id=GMB-AMER-WA-LIRGUWA&y_source=1_MjAwNjUyODQzMS03MTUtbG9jYXRpb24ud2Vic2l0ZQ%3D%3D"
+    }
   }
 }
