@@ -44,6 +44,20 @@ jobs:
             --cache cache/geocode_cache_google_fhr_thc.json \
             --input-format fhrthc | tee -a fhrthc.log
 
+      - name: Send email with updated geocoded FHR+THC CSV
+        uses: dawidd6/action-send-mail@v6
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "FHR+THC hotel list updated"
+          to: "liqiu2003@icloud.com"
+          from: "Hilton Bot <hilton@zhengqiu.net>"
+          body: file://fhrthc.log
+          attachments: |
+            cache/fhr_thc_hotels_geocoded_google.csv
+
       - name: Commit and push cache updates
         run: |
           git config user.name "github-actions[bot]"
