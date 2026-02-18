@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 URL_TEMPLATE = "https://www.americanexpress.com/en-us/travel/discover/property-results/r/{page}"
-OUT = "fhr_thc_hotels.csv"
+OUT = "cache/fhr_thc_hotels.csv"
 
 
 def _clean_text(s: str) -> str:
