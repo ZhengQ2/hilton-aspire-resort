@@ -115,7 +115,9 @@ def build_queries(hotel_name: str, brand: str, hotel_url: str = "", hotel_locati
 
     slug_title = _title_like_from_words(_slug_words_from_url(hotel_url))
     brand_tokens = [brand, "Hilton"] if brand and brand.lower() != "hilton" else (["Hilton"] if brand else [""])
-    name_candidates = [s for s in [slug_title, hotel_name] if s]
+    # Prefer explicit hotel_name over URL slug to avoid noisy slug artifacts
+    # dominating the candidate set.
+    name_candidates = [s for s in [hotel_name, slug_title] if s]
     location = clean_query(hotel_location)
 
     # Strong variants: include Hotel/Resort suffixes explicitly to skew toward lodging
@@ -243,6 +245,45 @@ BRAND_HINTS = [
     "Home2 Suites", "Motto", "Tempo", "Signia", "Canopy", "Tru"
 ]
 
+GENERIC_NAME_TOKENS = {
+    "hotel", "resort", "spa", "and", "the", "at", "by", "&",
+    "hilton", "inn", "suites", "collection", "club", "property"
+}
+
+
+def _meaningful_tokens(text: str) -> set:
+    return {
+        tok
+        for tok in re.findall(r"[a-z0-9]+", (text or "").lower())
+        if tok and tok not in GENERIC_NAME_TOKENS and len(tok) > 1
+    }
+
+
+def _name_similarity(place_name: str, hotel_name: str) -> float:
+    p = _meaningful_tokens(place_name)
+    h = _meaningful_tokens(hotel_name)
+    if not p or not h:
+        return 0.0
+
+    overlap = len(p & h)
+    if overlap == 0:
+        return 0.0
+    return overlap / max(1, len(h))
+
+
+def _is_name_compatible(place_name: str, hotel_name: str) -> bool:
+    score = _name_similarity(place_name, hotel_name)
+    if score >= 0.6:
+        return True
+
+    # Strict token-prefix checks to avoid false positives like
+    # dali vs dalian (substring, but not token-equal).
+    p = _meaningful_tokens(place_name)
+    h = _meaningful_tokens(hotel_name)
+    if not p or not h:
+        return False
+    return bool(p & h) and len(p & h) >= max(1, min(len(p), len(h)) - 1)
+
 
 def _is_lodging_type(types: List[str]) -> bool:
     t = {str(x).lower() for x in (types or [])}
@@ -261,7 +302,7 @@ def _brand_in_name(name: str, brand: str) -> bool:
     return any(h.lower() in name_l for h in BRAND_HINTS)
 
 
-def choose_best_place(results: List[Dict[str, Any]], brand: str) -> Optional[Dict[str, Any]]:
+def choose_best_place(results: List[Dict[str, Any]], brand: str, hotel_name: str) -> Optional[Dict[str, Any]]:
     if not results:
         return None
     # Rank: (lodging priority, brand-in-name, rating presence, user_ratings_total)
@@ -272,10 +313,14 @@ def choose_best_place(results: List[Dict[str, Any]], brand: str) -> Optional[Dic
         brand_hit = 1 if _brand_in_name(r.get("name"), brand) else 0
         rating = 1 if r.get("rating") is not None else 0
         ur = int(r.get("user_ratings_total") or 0)
-        score = (lodging, brand_hit, rating, ur)
+        name_hit = 1 if _is_name_compatible(r.get("name", ""), hotel_name) else 0
+        score = (lodging, name_hit, brand_hit, rating, ur)
         ranked.append((score, r))
     ranked.sort(key=lambda x: x[0], reverse=True)
     best = ranked[0][1]
+    # Hard guard against near-miss sibling properties.
+    if not _is_name_compatible(best.get("name", ""), hotel_name):
+        return None
     # Require lodging if anything in the set is lodging
     if any(_is_lodging_type(r.get("types", [])) for _, r in ranked) and not _is_lodging_type(best.get("types", [])):
         # pick first lodging one
@@ -304,12 +349,12 @@ def acceptable_from_details(details: Dict[str, Any]) -> bool:
 # Orchestration
 # -----------------------
 
-def geocode_places_first(queries: List[str], brand: str, base_delay: float) -> Tuple[Optional[Dict[str, Any]], str]:
+def geocode_places_first(queries: List[str], brand: str, hotel_name: str, base_delay: float) -> Tuple[Optional[Dict[str, Any]], str]:
     last = "NO_RESULT"
     for q in queries:
         try:
             ts = places_text_search(q, API_KEY)
-            cand = choose_best_place(ts.get("results", []), brand)
+            cand = choose_best_place(ts.get("results", []), brand, hotel_name)
             if cand:
                 det = places_details(cand["place_id"], API_KEY)
                 if det and acceptable_from_details(det):
@@ -327,7 +372,12 @@ def geocode_places_first(queries: List[str], brand: str, base_delay: float) -> T
                     }, f"PLACES:{q}"
             # limited fallback to classic geocoder for this query
             geo = geocode_google(q + " Hotel", API_KEY, REGION_BIAS)
-            if geo and geo.get("confidence", "").upper() == "ROOFTOP" and _is_lodging_type(geo.get("types", [])):
+            if (
+                geo
+                and geo.get("confidence", "").upper() == "ROOFTOP"
+                and _is_lodging_type(geo.get("types", []))
+                and _is_name_compatible(geo.get("raw", {}).get("name", "") or q, hotel_name)
+            ):
                 return geo, f"GEOCODE:{q}"
             last = f"WEAK_OR_EMPTY:{q}"
         except (GeocodeError, requests.RequestException) as e:
@@ -459,7 +509,7 @@ def main():
             res = None if cached == {"status": "NO_RESULT"} else cached
             status = "CACHED" if res else "CACHED:NO_RESULT"
         else:
-            res, status = geocode_places_first(queries, brand, BASE_DELAY)
+            res, status = geocode_places_first(queries, brand, hotel, BASE_DELAY)
             cache[cache_key] = res or {"status": "NO_RESULT"}
             save_cache(cache_path_obj, cache)
 

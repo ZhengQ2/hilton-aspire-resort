@@ -362,7 +362,42 @@ def _names_match(name1: str, name2: str) -> bool:
     Returns:
         True if names match, False otherwise
     """
-    return name1 in name2 or name2 in name1
+    n1 = _clean_text(name1).lower()
+    n2 = _clean_text(name2).lower()
+
+    if not n1 or not n2:
+        return False
+    if n1 == n2:
+        return True
+
+    # Token-aware matching prevents false positives like
+    # "hilton dali" vs "hilton dalian" while still allowing
+    # benign suffix/prefix differences.
+    generic_tokens = {
+        "hotel", "resort", "spa", "and", "the", "at", "by", "&",
+        "hilton", "inn", "suites", "collection", "club"
+    }
+
+    def tokens(s: str) -> set:
+        return {
+            t
+            for t in re.findall(r"[a-z0-9]+", s)
+            if t and t not in generic_tokens
+        }
+
+    t1 = tokens(n1)
+    t2 = tokens(n2)
+
+    if not t1 or not t2:
+        return False
+    if t1 == t2:
+        return True
+
+    # Allow subset matches when there is substantial overlap and
+    # the non-overlapping tokens are only generic words.
+    overlap = t1 & t2
+    smaller = min(len(t1), len(t2))
+    return bool(overlap) and len(overlap) >= max(1, smaller - 1)
 
 
 def _update_cache_with_new_hotels(
