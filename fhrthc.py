@@ -90,10 +90,17 @@ class AmexCardHTMLParser(HTMLParser):
     def _flush_pending_row(self):
         if not self._pending_row:
             return
-        # Refresh location/brand/program from latest parsed state before flush.
-        self._pending_row["program"] = self._effective_text(self._capture_program, self._program_buf, self._last_program or self._pending_row.get("program", ""))
-        self._pending_row["brand"] = self._effective_text(self._capture_brand, self._brand_buf, self._last_brand or self._pending_row.get("brand", ""))
-        self._pending_row["location"] = self._effective_text(self._capture_location, self._location_buf, self._last_location or self._pending_row.get("location", ""))
+
+        # Preserve values captured when supplier anchor closed. Only backfill
+        # missing fields from in-flight buffers; never overwrite from last seen
+        # state because that can already belong to the next card.
+        if not self._pending_row.get("program"):
+            self._pending_row["program"] = self._effective_text(self._capture_program, self._program_buf, "")
+        if not self._pending_row.get("brand"):
+            self._pending_row["brand"] = self._effective_text(self._capture_brand, self._brand_buf, "")
+        if not self._pending_row.get("location"):
+            self._pending_row["location"] = self._effective_text(self._capture_location, self._location_buf, "")
+
         self.rows.append(self._pending_row)
         self._pending_row = None
 
