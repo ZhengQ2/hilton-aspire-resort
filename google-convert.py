@@ -24,6 +24,7 @@ import json
 import time
 import re
 import random
+import argparse
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 from urllib.parse import urlparse, unquote
@@ -36,11 +37,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # -----------------------
-# Config (no CLI args)
+# Config defaults (can be overridden via CLI)
 # -----------------------
 INPUT_PATH  = "hilton_resort_credit_hotels_by_brand.csv"  # must include hotel_name, group_label; optional hotel_url
 OUTPUT_PATH = "hotels_geocoded_google.csv"
 CACHE_PATH  = "geocode_cache_google.json"
+INPUT_FORMAT = "auto"  # auto|hilton|fhrthc
 
 REGION_BIAS = ""       # e.g., "US", "CA", "GB" or "" for none (used by Geocoding fallback)
 BASE_DELAY  = 0.0       # seconds between requests (jittered)
@@ -100,7 +102,7 @@ def _title_like_from_words(words: List[str]) -> str:
     return s.strip()
 
 
-def build_queries(hotel_name: str, brand: str, hotel_url: str = "") -> List[str]:
+def build_queries(hotel_name: str, brand: str, hotel_url: str = "", hotel_location: str = "") -> List[str]:
     """Build strongest → weakest search strings for Places Text Search.
     We keep discriminators and try brand spellings.
     """
@@ -112,8 +114,9 @@ def build_queries(hotel_name: str, brand: str, hotel_url: str = "") -> List[str]
             queries.append(q)
 
     slug_title = _title_like_from_words(_slug_words_from_url(hotel_url))
-    brand_tokens = [brand, "Hilton"] if brand and brand.lower() != "hilton" else ["Hilton"]
+    brand_tokens = [brand, "Hilton"] if brand and brand.lower() != "hilton" else (["Hilton"] if brand else [""])
     name_candidates = [s for s in [slug_title, hotel_name] if s]
+    location = clean_query(hotel_location)
 
     # Strong variants: include Hotel/Resort suffixes explicitly to skew toward lodging
     for name in name_candidates:
@@ -121,12 +124,20 @@ def build_queries(hotel_name: str, brand: str, hotel_url: str = "") -> List[str]
             add(f"{name} {b} Hotel")
             add(f"{name} {b} Resort")
             add(f"{name} {b}")
+            if location:
+                add(f"{name} {b} {location} Hotel")
+                add(f"{name} {b} {location} Resort")
+                add(f"{name} {b} {location}")
 
     # Fallbacks, progressively weaker
     if hotel_name:
         add(f"{hotel_name} Hotel")
         add(f"{hotel_name} Resort")
         add(hotel_name)
+        if location:
+            add(f"{hotel_name} {location} Hotel")
+            add(f"{hotel_name} {location} Resort")
+            add(f"{hotel_name} {location}")
 
     return queries
 
@@ -344,28 +355,71 @@ def save_cache(path: Path, data: Dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Geocode hotel CSV rows with Google Places-first flow.")
+    p.add_argument("--input", default=INPUT_PATH, help="Input CSV path")
+    p.add_argument("--output", default=OUTPUT_PATH, help="Output CSV path")
+    p.add_argument("--cache", default=CACHE_PATH, help="Cache JSON path")
+    p.add_argument(
+        "--input-format",
+        default=INPUT_FORMAT,
+        choices=["auto", "hilton", "fhrthc"],
+        help="Input schema mode. fhrthc expects optional brand_label + hotel_location.",
+    )
+    return p.parse_args()
+
+
+def _clean_cell(value: Any) -> str:
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
+
+
+def detect_input_format(df: pd.DataFrame, requested_format: str) -> str:
+    if requested_format != "auto":
+        return requested_format
+    if "hotel_location" in df.columns and "brand_label" in df.columns:
+        return "fhrthc"
+    return "hilton"
+
+
 def main():
+    args = parse_args()
+
     if not API_KEY:
         raise SystemExit("Set GOOGLE_MAPS_API_KEY env var (or put it in .env).")
 
     # Load input
-    df = pd.read_csv(INPUT_PATH)
+    input_path = args.input
+    output_path = args.output
+    cache_path = args.cache
+    df = pd.read_csv(input_path)
+    input_format = detect_input_format(df, args.input_format)
+
     required = {"hotel_name", "group_label"}
+    if input_format == "fhrthc":
+        required = {"hotel_name", "hotel_location"}
     if not required.issubset(df.columns):
-        raise SystemExit("Input must contain columns: hotel_name, group_label")
+        raise SystemExit(f"Input format '{input_format}' must contain columns: {', '.join(sorted(required))}")
     if "hotel_url" not in df.columns:
         df["hotel_url"] = None
+    if "group_label" not in df.columns:
+        df["group_label"] = None
+    if input_format == "fhrthc" and "brand_label" not in df.columns:
+        df["brand_label"] = None
+    if input_format == "fhrthc" and "hotel_location" not in df.columns:
+        df["hotel_location"] = None
 
     # Resume support
     already = set()
-    if ONLY_MISSING and Path(OUTPUT_PATH).exists():
-        prev = pd.read_csv(OUTPUT_PATH)
+    if ONLY_MISSING and Path(output_path).exists():
+        prev = pd.read_csv(output_path)
         if {"hotel_name", "group_label", "lat", "lon"}.issubset(prev.columns):
             for _, r in prev.dropna(subset=["lat", "lon"]).iterrows():
                 already.add((str(r["hotel_name"]).strip().lower(), str(r["group_label"]).strip().lower()))
 
-    cache_path = Path(CACHE_PATH)
-    cache = load_cache(cache_path)
+    cache_path_obj = Path(cache_path)
+    cache = load_cache(cache_path_obj)
 
     work = df.copy()
     if ONLY_MISSING:
@@ -380,15 +434,22 @@ def main():
     rows = []
     total = len(work)
     for idx, row in enumerate(work.itertuples(index=False), 1):
-        hotel = str(getattr(row, "hotel_name")).strip()
-        brand = str(getattr(row, "group_label")).strip()
-        group_type = str(getattr(row, "group_type", "Brand")).strip() or "Brand"
-        hotel_url = str(getattr(row, "hotel_url", "") or "").strip()
+        hotel = _clean_cell(getattr(row, "hotel_name", ""))
+        hotel_url = _clean_cell(getattr(row, "hotel_url", ""))
+        hotel_location = _clean_cell(getattr(row, "hotel_location", ""))
+        group_label = _clean_cell(getattr(row, "group_label", ""))
+        group_type = _clean_cell(getattr(row, "group_type", "Brand")) or "Brand"
 
-        queries = build_queries(hotel, brand, hotel_url)
+        if input_format == "fhrthc":
+            brand = _clean_cell(getattr(row, "brand_label", ""))
+        else:
+            brand = group_label
+
+        queries = build_queries(hotel, brand, hotel_url, hotel_location)
         cache_key = json.dumps({
             "v": CACHE_VERSION,
             "provider": "google_places_first",
+            "input_format": input_format,
             "queries": queries,
             "brand": brand,
         }, sort_keys=True)
@@ -400,12 +461,14 @@ def main():
         else:
             res, status = geocode_places_first(queries, brand, BASE_DELAY)
             cache[cache_key] = res or {"status": "NO_RESULT"}
-            save_cache(cache_path, cache)
+            save_cache(cache_path_obj, cache)
 
         out = {
             "hotel_name": hotel,
             "hotel_url": hotel_url or None,
-            "group_label": brand,
+            "hotel_location": hotel_location or None,
+            "group_label": group_label or None,
+            "brand_label": brand or None,
             "group_type": group_type,
             "lat": None,
             "lon": None,
@@ -434,20 +497,20 @@ def main():
         print(f"[{idx}/{total}] {hotel} -> {out['status']}")
 
     out_df = pd.DataFrame(rows, columns=[
-        "hotel_name","hotel_url","group_label","group_type",
+        "hotel_name","hotel_url","hotel_location","group_label","brand_label","group_type",
         "lat","lon","formatted_address","provider","confidence",
         "place_id","types","partial_match","status"
     ])
 
-    if ONLY_MISSING and Path(OUTPUT_PATH).exists():
-        prev = pd.read_csv(OUTPUT_PATH)
+    if ONLY_MISSING and Path(output_path).exists():
+        prev = pd.read_csv(output_path)
         keycols = ["hotel_name","group_label"]
         merged = pd.concat([prev, out_df]).drop_duplicates(subset=keycols, keep="last")
-        merged.to_csv(OUTPUT_PATH, index=False)
-        print(f"Wrote {len(merged)} rows -> {OUTPUT_PATH}")
+        merged.to_csv(output_path, index=False)
+        print(f"Wrote {len(merged)} rows -> {output_path}")
     else:
-        out_df.to_csv(OUTPUT_PATH, index=False)
-        print(f"Wrote {len(out_df)} rows -> {OUTPUT_PATH}")
+        out_df.to_csv(output_path, index=False)
+        print(f"Wrote {len(out_df)} rows -> {output_path}")
 
 
 if __name__ == "__main__":
