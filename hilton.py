@@ -167,6 +167,29 @@ def _collect_hotel_links(panel, base_url):
 
     # Clean and normalize
     cleaned = []
+
+    def _tokens(s: str) -> set:
+        s = _clean_text(s).lower().replace("&", " and ")
+        s = re.sub(r"[^a-z0-9]+", " ", s)
+        stop = {"the", "and", "by", "at", "in", "an", "a", "hotel", "hotels", "resort", "resorts", "spa", "hilton"}
+        return {t for t in s.split() if t and t not in stop}
+
+    def _url_matches_name(name: str, href: str) -> bool:
+        try:
+            path = urlparse(href).path.lower()
+        except Exception:
+            return False
+        if "/en/hotels/" not in path:
+            return True
+        slug = path.rsplit("/", 2)[-2] if path.endswith("/") else path.rsplit("/", 1)[-1]
+        if not slug:
+            return True
+        slug_tokens = _tokens(slug)
+        name_tokens = _tokens(name)
+        if not slug_tokens or not name_tokens:
+            return True
+        return len(slug_tokens & name_tokens) >= 2
+
     for it in items:
         name = _clean_text(it.get("name") or "")
         href = _clean_url(it.get("href") or "")
@@ -174,6 +197,8 @@ def _collect_hotel_links(panel, base_url):
             continue
         if not urlparse(href).scheme:
             href = urljoin(base_url, href)
+        if not _url_matches_name(name, href):
+            continue
         cleaned.append({"name": name, "href": href})
 
     # Dedup per name, preferring Hilton property pages when multiple URLs exist

@@ -102,6 +102,29 @@ def _title_like_from_words(words: List[str]) -> str:
     return s.strip()
 
 
+def _normalized_tokens(value: str) -> List[str]:
+    value = clean_query(value).lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    toks = [t for t in value.split() if t]
+    stop = {
+        "the", "and", "by", "at", "in", "an", "a", "hotel", "hotels",
+        "resort", "resorts", "spa", "hilton"
+    }
+    return [t for t in toks if t not in stop]
+
+
+def _slug_matches_hotel_name(slug_title: str, hotel_name: str) -> bool:
+    """Return True when URL-derived title appears consistent with hotel name."""
+    slug_tokens = set(_normalized_tokens(slug_title))
+    name_tokens = set(_normalized_tokens(hotel_name))
+    if not slug_tokens or not name_tokens:
+        return False
+    overlap = slug_tokens & name_tokens
+    # Require meaningful overlap before trusting URL slug as a query seed.
+    return len(overlap) >= 2
+
+
 def build_queries(hotel_name: str, brand: str, hotel_url: str = "", hotel_location: str = "") -> List[str]:
     """Build strongest → weakest search strings for Places Text Search.
     We keep discriminators and try brand spellings.
@@ -114,6 +137,8 @@ def build_queries(hotel_name: str, brand: str, hotel_url: str = "", hotel_locati
             queries.append(q)
 
     slug_title = _title_like_from_words(_slug_words_from_url(hotel_url))
+    if slug_title and hotel_name and not _slug_matches_hotel_name(slug_title, hotel_name):
+        slug_title = ""
     brand_tokens = [brand, "Hilton"] if brand and brand.lower() != "hilton" else (["Hilton"] if brand else [""])
     name_candidates = [s for s in [slug_title, hotel_name] if s]
     location = clean_query(hotel_location)
