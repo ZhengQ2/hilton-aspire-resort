@@ -2,7 +2,7 @@ name: Update FHR+THC Hotels
 
 on:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 jobs:
@@ -34,7 +34,18 @@ jobs:
         run: |
           python fhrthc.py | tee fhrthc.log
 
+      - name: Did FHR+THC list change vs geocode cache?
+        id: check_list
+        run: |
+          if grep -q "Hotels NOT found in geocode cache (new hotels):" fhrthc.log || \
+             grep -q "Hotels in geocode cache but NOT in current scraped list (removed):" fhrthc.log; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run Google geocoding (FHR+THC)
+        if: steps.check_list.outputs.changed == 'true'
         env:
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: |
@@ -45,6 +56,7 @@ jobs:
             --input-format fhrthc | tee -a fhrthc.log
 
       - name: Send email with updated geocoded FHR+THC CSV
+        if: steps.check_list.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v6
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
@@ -59,6 +71,7 @@ jobs:
             cache/fhr_thc_hotels_geocoded_google.csv
 
       - name: Commit and push cache updates
+        if: steps.check_list.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
