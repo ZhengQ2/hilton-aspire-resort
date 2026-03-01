@@ -1,48 +1,4 @@
 {
-  "{\"brand\": \"Conrad Hotels & Resorts\", \"input_format\": \"hilton\", \"provider\": \"google_places_first\", \"queries\": [\"auhetci conrad abu dhabi etihad towers Conrad Hotels & Resorts Hotel\", \"auhetci conrad abu dhabi etihad towers Conrad Hotels & Resorts Resort\", \"auhetci conrad abu dhabi etihad towers Conrad Hotels & Resorts\", \"auhetci conrad abu dhabi etihad towers Hilton Hotel\", \"auhetci conrad abu dhabi etihad towers Hilton Resort\", \"auhetci conrad abu dhabi etihad towers Hilton\", \"Conrad Abu Dhabi Etihad Towers Conrad Hotels & Resorts Hotel\", \"Conrad Abu Dhabi Etihad Towers Conrad Hotels & Resorts Resort\", \"Conrad Abu Dhabi Etihad Towers Conrad Hotels & Resorts\", \"Conrad Abu Dhabi Etihad Towers Hilton Hotel\", \"Conrad Abu Dhabi Etihad Towers Hilton Resort\", \"Conrad Abu Dhabi Etihad Towers Hilton\", \"Conrad Abu Dhabi Etihad Towers Hotel\", \"Conrad Abu Dhabi Etihad Towers Resort\", \"Conrad Abu Dhabi Etihad Towers\"], \"v\": 3}": {
-    "lat": 24.4584497,
-    "lon": 54.32230509999999,
-    "formatted_address": "Corniche St - Al Bateen - W32 - Abu Dhabi - United Arab Emirates",
-    "provider": "google_places",
-    "confidence": "PLACE_DETAILS",
-    "place_id": "ChIJIX9-hZNlXj4RvO2QAgB5g18",
-    "types": [
-      "establishment",
-      "lodging",
-      "point_of_interest",
-      "spa"
-    ],
-    "partial_match": false,
-    "raw": {
-      "business_status": "OPERATIONAL",
-      "formatted_address": "Corniche St - Al Bateen - W32 - Abu Dhabi - United Arab Emirates",
-      "geometry": {
-        "location": {
-          "lat": 24.4584497,
-          "lng": 54.32230509999999
-        },
-        "viewport": {
-          "northeast": {
-            "lat": 24.4601549802915,
-            "lng": 54.3231875802915
-          },
-          "southwest": {
-            "lat": 24.4574570197085,
-            "lng": 54.3204896197085
-          }
-        }
-      },
-      "name": "Conrad Abu Dhabi Etihad Towers",
-      "place_id": "ChIJIX9-hZNlXj4RvO2QAgB5g18",
-      "types": [
-        "establishment",
-        "lodging",
-        "point_of_interest",
-        "spa"
-      ],
-      "website": "https://www.hilton.com/en/hotels/auhetci-conrad-abu-dhabi-etihad-towers/?SEO_id=GMB-EMEA-CI-AUHETCI"
-    }
-  },
   "{\"brand\": \"Conrad Hotels & Resorts\", \"input_format\": \"hilton\", \"provider\": \"google_places_first\", \"queries\": [\"faoapci conrad algarve Conrad Hotels & Resorts Hotel\", \"faoapci conrad algarve Conrad Hotels & Resorts Resort\", \"faoapci conrad algarve Conrad Hotels & Resorts\", \"faoapci conrad algarve Hilton Hotel\", \"faoapci conrad algarve Hilton Resort\", \"faoapci conrad algarve Hilton\", \"Conrad Algarve Conrad Hotels & Resorts Hotel\", \"Conrad Algarve Conrad Hotels & Resorts Resort\", \"Conrad Algarve Conrad Hotels & Resorts\", \"Conrad Algarve Hilton Hotel\", \"Conrad Algarve Hilton Resort\", \"Conrad Algarve Hilton\", \"Conrad Algarve Hotel\", \"Conrad Algarve Resort\", \"Conrad Algarve\"], \"v\": 3}": {
     "lat": 37.0632425,
     "lon": -8.0289784,

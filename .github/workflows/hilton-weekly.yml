@@ -38,8 +38,12 @@ jobs:
       - name: Did Hilton list change vs geocode cache?
         id: check_list
         run: |
-          if grep -q "Hotels NOT found in geocode cache (new hotels):" hilton.log || \
-             grep -q "Hotels in geocode cache but NOT in current scraped list (removed):" hilton.log; then
+          if [ ! -s cache/geocode_cache_google_hilton.json ]; then
+            echo "Cache file missing or empty; treating as changed."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif grep -q "No cache index built (file missing or empty:" hilton.log || \
+               grep -q "Hotels NOT found in geocode cache (new hotels):" hilton.log || \
+               grep -q "Hotels in geocode cache but NOT in current scraped list (removed):" hilton.log; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -88,13 +92,13 @@ jobs:
         if: steps.check_list.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v6
         with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
+          server_address: ${{ vars.SMTP_SERVER }}
+          server_port: ${{ vars.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "Hilton resort-credit hotel list updated"
-          to: "liqiu2003@icloud.com"
-          from: "Hilton Bot <hilton@zhengqiu.net>"
+          to: ${{ vars.EMAIL_TO }}
+          from: ${{ vars.EMAIL_FROM }}
           body: file://hilton.log
           attachments: |
             cache/hilton_hotels_geocoded_google.csv
