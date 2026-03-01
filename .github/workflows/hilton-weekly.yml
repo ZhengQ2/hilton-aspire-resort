@@ -88,13 +88,13 @@ jobs:
         if: steps.check_list.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v6
         with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
+          server_address: ${{ vars.SMTP_SERVER }}
+          server_port: ${{ vars.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "Hilton resort-credit hotel list updated"
-          to: ${{ secrets.EMAIL_TO }}
-          from: ${{ secrets.EMAIL_FROM }}
+          to: ${{ vars.EMAIL_TO }}
+          from: ${{ vars.EMAIL_FROM }}
           body: file://hilton.log
           attachments: |
             cache/hilton_hotels_geocoded_google.csv

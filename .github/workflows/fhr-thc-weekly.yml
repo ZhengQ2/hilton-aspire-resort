@@ -59,13 +59,13 @@ jobs:
         if: steps.check_list.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v6
         with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
+          server_address: ${{ vars.SMTP_SERVER }}
+          server_port: ${{ vars.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "FHR+THC hotel list updated"
-          to: ${{ secrets.EMAIL_TO }}
-          from: ${{ secrets.EMAIL_FROM }}
+          to: ${{ vars.EMAIL_TO }}
+          from: ${{ vars.EMAIL_FROM }}
           body: file://fhrthc.log
           attachments: |
             cache/fhr_thc_hotels_geocoded_google.csv
