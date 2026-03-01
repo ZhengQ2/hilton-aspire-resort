@@ -64,8 +64,8 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "FHR+THC hotel list updated"
-          to: "liqiu2003@icloud.com"
-          from: "Hilton Bot <hilton@zhengqiu.net>"
+          to: ${{ secrets.EMAIL_TO }}
+          from: ${{ secrets.EMAIL_FROM }}
           body: file://fhrthc.log
           attachments: |
             cache/fhr_thc_hotels_geocoded_google.csv
