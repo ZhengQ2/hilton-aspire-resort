@@ -38,7 +38,10 @@ jobs:
       - name: Did Hilton list change vs geocode cache?
         id: check_list
         run: |
-          if grep -q "Hotels NOT found in geocode cache (new hotels):" hilton.log || \
+          if [ ! -s cache/geocode_cache_google_hilton.json ]; then
+            echo "No cache index built (file missing or empty: cache/geocode_cache_google_hilton.json)." | tee -a hilton.log
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif grep -q "Hotels NOT found in geocode cache (new hotels):" hilton.log || \
              grep -q "Hotels in geocode cache but NOT in current scraped list (removed):" hilton.log; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
